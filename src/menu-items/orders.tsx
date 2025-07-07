@@ -2,69 +2,39 @@
 import { FormattedMessage } from 'react-intl';
 
 // assets
-import { ShoppingCart } from 'iconsax-react';
+import { House, Home3, AddSquare } from 'iconsax-react';
 
 // types
 import { NavItemType } from 'types/menu';
-
-// icons
-const icons = {
-  order: ShoppingCart
-};
 
 // ==============================|| MENU ITEMS - WIDGETS ||============================== //
 
 const orders: NavItemType = {
   id: 'group-orders',
-  title: <FormattedMessage id="orders" />,
-  icon: icons.order,
+  title: <FormattedMessage id="orders-room" defaultMessage="Quản lý đặt phòng" />,
+  icon: House,
   type: 'group',
   children: [
     {
+      id: 'check-available',
+      title: <FormattedMessage id="check-available" defaultMessage="Kiểm tra phòng trống" />,
+      type: 'item',
+      url: '/check-available',
+      icon: House
+    },
+    {
       id: 'orders',
-      title: <FormattedMessage id="orders" />,
+      title: <FormattedMessage id="orders" defaultMessage="Danh sách đặt phòng" />,
       type: 'item',
       url: '/orders',
-      icon: icons.order,
-      children: [
-        {
-          id: 'sample-separation',
-          title: <FormattedMessage id="sample-separation" />,
-          type: 'item',
-          url: '/orders/sample-separation',
-          icon: icons.order
-        },
-        {
-          id: 'quotations',
-          title: <FormattedMessage id="quotations" />,
-          type: 'item',
-          url: '/orders/:orderId/quotations',
-          icon: icons.order,
-          children: [
-            {
-              id: 'quotation-detail',
-              title: <FormattedMessage id="quotation-detail" />,
-              type: 'item',
-              url: '/orders/:orderId/quotations/:[quoteId]/detail',
-              icon: icons.order
-            }
-          ]
-        },
-        {
-          id: 'assignment-analysis',
-          title: <FormattedMessage id="assignment-analysis" />,
-          type: 'item',
-          url: '/orders/:orderId/assignment-analysis',
-          icon: icons.order
-        },
-        {
-          id: 'result-entry-review',
-          title: <FormattedMessage id="result-entry-review" />,
-          type: 'item',
-          url: '/orders/:orderId/result-entry-review',
-          icon: icons.order
-        },
-      ]
+      icon: Home3
+    },
+    {
+      id: 'create',
+      title: <FormattedMessage id="create" defaultMessage="Đặt phòng" />,
+      type: 'item',
+      url: '/create',
+      icon: AddSquare
     }
   ]
 };

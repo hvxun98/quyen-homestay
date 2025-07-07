@@ -57,8 +57,7 @@ const AuthLogin = ({ providers }: AuthLoginProps) => {
             redirect: false,
             username: values.username,
             password: values.password,
-            rememberMe: values.rememberMe,
-            slug: Cookies.get('slugCompany')
+            rememberMe: values.rememberMe
           });
 
           if (res?.ok && !res.error) {

@@ -18,25 +18,11 @@ export const authOptions: NextAuthOptions = {
         if (!credentials) return null;
         let error = '';
         try {
-          const response = credentials.slug
-            ? await axios.post(
-                `${process.env.NEXT_PUBLIC_BASE_API_URL}/api/authenticate`,
-                {
-                  username: credentials.username,
-                  password: credentials.password,
-                  rememberMe: true
-                },
-                {
-                  headers: {
-                    'X-Company-Slug': credentials.slug
-                  }
-                }
-              )
-            : await axios.post(`${process.env.NEXT_PUBLIC_BASE_API_URL}/api/authenticate`, {
-                username: credentials.username,
-                password: credentials.password,
-                rememberMe: true
-              });
+          const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_API_URL}/api/authenticate`, {
+            username: credentials.username,
+            password: credentials.password,
+            rememberMe: true
+          });
 
           if (response?.data?.id_token) {
             return {

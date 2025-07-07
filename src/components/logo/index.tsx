@@ -27,7 +27,7 @@ export default function LogoSection({ reverse, isIcon, sx, to }: Props) {
   return (
     <ButtonBase disableRipple component={Link} href={!to ? APP_DEFAULT_PATH : to} sx={sx}>
       {/* {isIcon ? <LogoIcon /> : <Logo reverse={reverse} />} */}
-      <Typography fontSize={24}>Sieulab</Typography>
+      <Typography fontSize={24}>QHomestay</Typography>
     </ButtonBase>
   );
 }

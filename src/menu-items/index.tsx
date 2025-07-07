@@ -6,12 +6,10 @@
 // import chartsMap from './charts-map';
 // import support from './support';
 // import pages from './pages';
-import brands from './brands';
-import customers from './customers';
+import report from './report';
 import orders from './orders';
-import request from './request';
-import setting from './setting';
-import users from './users';
+import invoices from './invoices';
+import roomsDiagram from './roomsDiagram';
 
 // types
 import { NavItemType } from 'types/menu';
@@ -19,7 +17,7 @@ import { NavItemType } from 'types/menu';
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems: { items: NavItemType[] } = {
-  items: [users, orders, customers, setting, request, brands]
+  items: [roomsDiagram, orders, invoices, report]
 };
 
 export default menuItems;
