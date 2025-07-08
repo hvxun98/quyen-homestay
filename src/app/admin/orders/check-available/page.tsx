@@ -1,15 +1,15 @@
 import DashboardLayout from 'layout/DashboardLayout';
 import AuthGuard from 'utils/route-guard/AuthGuard';
-import QuotationDetailView from 'views/admin/orders/quotations/components/QuotationDetailView';
+import CheckAvailable from 'views/admin/orders/check-available';
 
-const QuotationPage = () => {
+const Timeline = () => {
   return (
     <AuthGuard>
       <DashboardLayout>
-        <QuotationDetailView />
+        <CheckAvailable />
       </DashboardLayout>
     </AuthGuard>
   );
 };
 
-export default QuotationPage;
+export default Timeline;

@@ -6,8 +6,8 @@ import './globals.scss';
 import ProviderWrapper from './ProviderWrapper';
 
 export const metadata: Metadata = {
-  title: 'Sieulab Pro',
-  description: 'Welcome to Sieulab ^^!'
+  title: '1MT Homestay',
+  description: 'Welcome to 1MT Homestay ^^!'
 };
 
 export default function RootLayout({ children }: { children: React.ReactElement }) {

@@ -2,7 +2,9 @@
 import { FormattedMessage } from 'react-intl';
 
 // assets
-import { Bill, House2, Building, MoneyRecive } from 'iconsax-react';
+import { House2, MoneyRecive } from 'iconsax-react';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import BathroomIcon from '@mui/icons-material/Bathroom';
 
 // types
 import { NavItemType } from 'types/menu';
@@ -17,31 +19,31 @@ const invoices: NavItemType = {
   type: 'group',
   children: [
     {
-      id: 'check-available',
-      title: <FormattedMessage id="check-available" defaultMessage="Quản lý hoá đơn trọ" />,
+      id: 'Quản lý hoá đơn trọ',
+      title: <FormattedMessage id="Quản lý hoá đơn trọ" defaultMessage="Quản lý hoá đơn trọ" />,
       type: 'item',
-      url: '/invoices',
-      icon: Bill
+      url: '/admin/invoices',
+      icon: ReceiptIcon
     },
     {
-      id: 'check-available',
-      title: <FormattedMessage id="check-available" defaultMessage="Quản lý nhà" />,
+      id: 'Quản lý nhà',
+      title: <FormattedMessage id="Quản lý nhà" defaultMessage="Quản lý nhà" />,
       type: 'item',
-      url: '/houses',
+      url: '/admin/houses',
       icon: House2
     },
     {
-      id: 'check-available',
-      title: <FormattedMessage id="check-available" defaultMessage="Quản lý phòng" />,
+      id: 'Quản lý phòng',
+      title: <FormattedMessage id="Quản lý phòng" defaultMessage="Quản lý phòng" />,
       type: 'item',
-      url: '/rooms',
-      icon: Building
+      url: '/admin/rooms',
+      icon: BathroomIcon
     },
     {
-      id: 'check-available',
-      title: <FormattedMessage id="check-available" defaultMessage="Quản lý thu nhập chi phí" />,
+      id: 'Quản lý thu nhập chi phí',
+      title: <FormattedMessage id="Quản lý thu nhập chi phí" defaultMessage="Quản lý thu nhập chi phí" />,
       type: 'item',
-      url: '/houses',
+      url: '/admin/income-and-cost',
       icon: MoneyRecive
     }
   ]

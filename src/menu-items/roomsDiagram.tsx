@@ -28,11 +28,12 @@ const roomsDiagram: NavItemType = {
       icon: AlignHorizontally
     },
     {
-      id: 'normal',
+      id: 'Sơ đồ phòng',
       title: <FormattedMessage id="normal" defaultMessage="Đơn giản" />,
       type: 'item',
       url: '/admin/room-layout/simple',
-      icon: Box1
+      icon: Box1,
+      breadcrumbs: false
     }
   ]
 };

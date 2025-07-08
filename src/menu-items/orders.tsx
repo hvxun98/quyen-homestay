@@ -2,7 +2,8 @@
 import { FormattedMessage } from 'react-intl';
 
 // assets
-import { House, Home3, AddSquare } from 'iconsax-react';
+import { House } from 'iconsax-react';
+import BedroomParentIcon from '@mui/icons-material/BedroomParent';
 
 // types
 import { NavItemType } from 'types/menu';
@@ -16,25 +17,18 @@ const orders: NavItemType = {
   type: 'group',
   children: [
     {
-      id: 'check-available',
-      title: <FormattedMessage id="check-available" defaultMessage="Kiểm tra phòng trống" />,
+      id: 'Kiểm tra phòng trống',
+      title: <FormattedMessage id="Kiểm tra phòng trống" defaultMessage="Kiểm tra phòng trống" />,
       type: 'item',
-      url: '/check-available',
+      url: '/admin/orders/check-available',
       icon: House
     },
     {
-      id: 'orders',
-      title: <FormattedMessage id="orders" defaultMessage="Danh sách đặt phòng" />,
+      id: 'Danh sách đặt phòng',
+      title: <FormattedMessage id="Danh sách đặt phòng" defaultMessage="Danh sách đặt phòng" />,
       type: 'item',
-      url: '/orders',
-      icon: Home3
-    },
-    {
-      id: 'create',
-      title: <FormattedMessage id="create" defaultMessage="Đặt phòng" />,
-      type: 'item',
-      url: '/create',
-      icon: AddSquare
+      url: '/admin/orders/list',
+      icon: BedroomParentIcon
     }
   ]
 };
