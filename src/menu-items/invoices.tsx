@@ -3,7 +3,6 @@ import { FormattedMessage } from 'react-intl';
 
 // assets
 import { House2, MoneyRecive } from 'iconsax-react';
-import ReceiptIcon from '@mui/icons-material/Receipt';
 import BathroomIcon from '@mui/icons-material/Bathroom';
 
 // types
@@ -18,13 +17,6 @@ const invoices: NavItemType = {
   title: <FormattedMessage id="manager" defaultMessage="Quản lý" />,
   type: 'group',
   children: [
-    {
-      id: 'Quản lý hoá đơn trọ',
-      title: <FormattedMessage id="Quản lý hoá đơn trọ" defaultMessage="Quản lý hoá đơn trọ" />,
-      type: 'item',
-      url: '/admin/invoices',
-      icon: ReceiptIcon
-    },
     {
       id: 'Quản lý nhà',
       title: <FormattedMessage id="Quản lý nhà" defaultMessage="Quản lý nhà" />,
