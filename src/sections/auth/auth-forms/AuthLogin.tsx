@@ -1,6 +1,5 @@
 'use client';
 
-import Cookies from 'js-cookie';
 import { signIn } from 'next-auth/react';
 import Image from 'next/legacy/image';
 import Link from 'next/link';
@@ -28,7 +27,7 @@ import { Eye, EyeSlash } from 'iconsax-react';
 
 import AnimateButton from 'components/@extended/AnimateButton';
 import IconButton from 'components/@extended/IconButton';
-import { APP_DEFAULT_PATH, Domain } from 'config';
+import { APP_DEFAULT_PATH } from 'config';
 
 interface AuthLoginProps {
   providers?: any;
@@ -39,8 +38,7 @@ const AuthLogin = ({ providers }: AuthLoginProps) => {
   const Google = '/assets/images/icons/google.svg';
   const [showPassword, setShowPassword] = useState(false);
 
-  const domainType = Cookies.get('domainType') || 'main';
-  const redirectPath = domainType === Domain.admin ? '/dashboard/default' : '/';
+  const redirectPath = '/dashboard/default';
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
@@ -55,7 +53,7 @@ const AuthLogin = ({ providers }: AuthLoginProps) => {
         try {
           const res = await signIn('credentials', {
             redirect: false,
-            username: values.username,
+            email: values.username,
             password: values.password,
             rememberMe: values.rememberMe
           });
