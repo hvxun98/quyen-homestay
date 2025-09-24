@@ -1,145 +1,235 @@
 'use client';
-import { Box, Button, FormControl, Grid, MenuItem, Select, TextField } from '@mui/material';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Button, FormControl, Grid, MenuItem, Select, TextField, Stack } from '@mui/material';
 import { Column, CommonTable } from 'components/table/CommonTable';
 import { Add, Edit, SearchNormal1, Trash } from 'iconsax-react';
-import React, { useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import { getBrands } from 'services/users';
-import { BrandProps } from 'types/brands';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { createBrand } from 'services/brands';
-import { Stack } from '@mui/material';
 import ActionBookingModal from './OrderAction';
 import DeleteConfirmModal from 'components/modal/delete-modal/DeleteConfirmModal';
 import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+import { INPUT_BASER_STYLE } from 'constants/style';
 
-function Orders() {
-  const [brands, setBrands] = useState<BrandProps[]>([]);
+// Services (bạn đã có axios fetcher)
+import { getHouses } from 'services/houses';
+import { getRooms } from 'services/rooms';
+import { getBookings } from 'services/bookings';
+
+// ---- Types khớp API ---------------------------------------------------------
+type PayStatus = 'full' | 'deposit' | 'unpaid';
+type OrderStatus = 'pending' | 'success' | 'cancelled';
+
+type BookingRow = {
+  id: string;
+  stt: number;
+  code: string; // OD_XXXX (virtual)
+  name: string; // customerName (virtual)
+  roomLabel: string;
+  checkIn: string | Date;
+  checkOut: string | Date;
+  createdAt: string | Date;
+  price: number;
+  status: OrderStatus;
+  paymentStatus?: PayStatus;
+  source?: string;
+  houseId: string;
+};
+
+type RoomsOption = { _id: string; name: string };
+type HouseOption = { _id: string; code: string; address?: string };
+
+function toYMD(d: Dayjs | null) {
+  return d ? d.format('YYYY-MM-DD') : '';
+}
+
+export default function Orders() {
+  // ---- State ---------------------------------------------------------------
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
-  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [openAction, setOpenAction] = useState(false);
+  const [rooms, setRooms] = useState<RoomsOption[]>([]);
+  const [rows, setRows] = useState<BookingRow[]>([]);
+  const [total, setTotal] = useState(0);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
 
+  const [houses, setHouses] = useState<HouseOption[]>([]);
+  const [housesLoading, setHousesLoading] = useState(false);
+
+  // ---- Form filter ---------------------------------------------------------
   const validationSchema = Yup.object({
-    name: Yup.string().required('Vui lòng nhập tên chi nhánh')
+    houseId: Yup.string().required('Chọn cơ sở')
   });
 
   const formik = useFormik({
     initialValues: {
-      name: '',
-      description: '',
-      location: '690 Lạc Long Quân',
+      houseId: '', // sẽ set sau khi fetch houses
       customerName: '',
-      fromDate: dayjs('2025-07-01'),
-      toDate: dayjs('2025-07-31')
+      fromDate: dayjs().startOf('month'),
+      toDate: dayjs().endOf('month')
     },
     validationSchema,
-    onSubmit: (values) => {
-      console.log(values);
+    onSubmit: () => {
+      setPageNum(1);
+      fetchBookingsList(1, pageSize);
     }
   });
 
-  useEffect(() => {
-    getAllBrand();
-  }, []);
+  const selectedHouseLabel = useMemo(() => {
+    const found = houses.find((h) => h._id === formik.values.houseId);
+    // Bạn có thể ghép thêm địa chỉ: `${found?.code} — ${found?.address}`
+    return found?.code ?? '';
+  }, [houses, formik.values.houseId]);
 
-  const getAllBrand = async () => {
-    setLoading(true);
-    const res = await getBrands();
-    setBrands(res.data);
-    setLoading(false);
-  };
-
-  const handleAddBrand = async (next: any) => {
-    try {
-      setLoadingSubmit(true);
-      await createBrand({
-        brandName: formik.values.name,
-        description: formik.values.description
-      });
-      await getAllBrand();
-      formik.resetForm();
-      next();
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoadingSubmit(false);
-    }
-  };
-
-  const columns: Column<any>[] = [
-    { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'orderId' },
+  // ---- Columns hiển thị ----------------------------------------------------
+  const columns: Column<BookingRow>[] = [
+    { label: <FormattedMessage id="STT" defaultMessage="STT" />, field: 'stt', width: 80 },
+    { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'code' },
     { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'name' },
-    { label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />, field: 'room' },
-    { label: <FormattedMessage id="Checkin - Checkout" defaultMessage="Checkin - Checkout" />, field: 'check-in-out' },
-    { label: <FormattedMessage id="Ngày tạo" defaultMessage="Ngày tạo" />, field: 'createdDate' },
-    { label: <FormattedMessage id="Giá" defaultMessage="Giá" />, field: 'price' },
-    { label: <FormattedMessage id="Trạng thái" defaultMessage="Trạng thái" />, field: 'status' },
+    { label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />, field: 'roomLabel' },
+    {
+      label: <FormattedMessage id="Checkin - Checkout" defaultMessage="Checkin - Checkout" />,
+      render: (r) => {
+        const ci = dayjs(r.checkIn).format('HH:mm DD/MM/YYYY');
+        const co = dayjs(r.checkOut).format('HH:mm DD/MM/YYYY');
+        return `${ci} - ${co}`;
+      }
+    },
+    {
+      label: <FormattedMessage id="Ngày tạo" defaultMessage="Ngày tạo" />,
+      render: (r) => dayjs(r.createdAt).format('HH:mm DD/MM/YYYY')
+    },
+    {
+      label: <FormattedMessage id="Giá" defaultMessage="Giá" />,
+      render: (r) => r.price.toLocaleString('vi-VN') + ' VND'
+    },
+    {
+      label: <FormattedMessage id="Trạng thái" defaultMessage="Trạng thái" />,
+      render: (r) => (r.status === 'success' ? 'Thành công' : r.status === 'cancelled' ? 'Huỷ' : 'Đang xử lý')
+    },
     {
       label: <FormattedMessage id="Tác vụ" defaultMessage="Tác vụ" />,
-      render: () => {
-        return (
-          <Stack flexDirection="row" gap={1}>
-            <Button color="primary" variant="contained" onClick={() => setOpenAction(true)} startIcon={<Edit />}>
-              Sửa
-            </Button>
-            <Button color="error" variant="contained" onClick={() => setIsDeleteModal(true)} startIcon={<Trash />}>
-              Huỷ
-            </Button>
-          </Stack>
-        );
+      render: (r) => (
+        <Stack flexDirection="row" gap={1}>
+          <Button color="primary" variant="contained" startIcon={<Edit />} onClick={() => setOpenAction(true)}>
+            Sửa
+          </Button>
+          <Button color="error" variant="contained" startIcon={<Trash />} onClick={() => setIsDeleteModal(true)}>
+            Huỷ
+          </Button>
+        </Stack>
+      )
+    }
+  ];
+
+  // ---- Fetch houses (response {items,total,page,size}) ---------------------
+  async function fetchHouses() {
+    try {
+      setHousesLoading(true);
+      const res = await getHouses({ pageNum: 1, pageSize: 100 }); // tuỳ bạn phân trang
+      // res shape: { items: [...], total, page, size }
+      const items = res?.items ?? [];
+      const opts: HouseOption[] = items.map((h: any) => ({
+        _id: h._id,
+        code: h.code,
+        address: h.address
+      }));
+      setHouses(opts);
+
+      // set houseId mặc định lần đầu & load bookings
+      if (!formik.values.houseId && opts[0]?._id) {
+        formik.setFieldValue('houseId', opts[0]._id, false);
+        await fetchBookingsList(1, pageSize, opts[0]._id);
       }
+    } catch (e) {
+      console.error(e);
+      setHouses([]);
+    } finally {
+      setHousesLoading(false);
     }
-  ];
+  }
+  useEffect(() => {
+    fetchHouses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const rows = [
-    {
-      id: 1,
-      orderId: 'OD_8082',
-      name: 'Hoàng Test',
-      room: 'Std 501 LLQ',
-      'check-in-out': '12:00 08/07/2025 - 12:00 09/07/2025',
-      createdDate: '11:18 08/07/2025',
-      price: '1.000.000 VND',
-      status: 'Huỷ'
-    },
-    {
-      id: 2,
-      orderId: 'OD_8073',
-      name: 'king- Lê Khangg',
-      room: 'Std 201 LLQ',
-      'check-in-out': '10:00 11/07/2025 - 16:00 11/07/2025',
-      createdDate: '10:14 08/07/2025',
-      price: '370.000 VND',
-      status: 'Thành công'
-    },
-    {
-      id: 3,
-      orderId: 'OD_8044',
-      name: 'King-Nguyễn Bảo Lâm',
-      room: 'Std 501 LLQ',
-      'check-in-out': '12:00 09/07/2025 - 18:00 09/07/2025',
-      createdDate: '21:27 07/07/2025',
-      price: '370.000 VND',
-      status: 'Thành công'
+  // ---- Fetch list bookings -------------------------------------------------
+  async function fetchBookingsList(page = pageNum, size = pageSize, houseIdOverride?: string) {
+    try {
+      setLoading(true);
+      const res = await getBookings({
+        houseId: houseIdOverride ?? (formik.values.houseId || undefined),
+        q: formik.values.customerName?.trim() || undefined,
+        from: formik.values.fromDate ? toYMD(formik.values.fromDate) : undefined,
+        to: formik.values.toDate ? toYMD(formik.values.toDate) : undefined,
+        dateField: 'createdAt',
+        pageNum: page,
+        pageSize: size,
+        sort: '-createdAt'
+      });
+
+      const data = res?.data ?? res?.rows ?? res ?? [];
+      const meta = res?.meta ?? {};
+      setRows(Array.isArray(data) ? data : []);
+      setTotal(meta.total ?? (Array.isArray(data) ? data.length : 0));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
-  ];
+  }
 
+  // ---- Fetch rooms cho modal theo house hiện tại ---------------------------
+  async function fetchRoomsByHouse(houseId: string) {
+    try {
+      const res = await getRooms({ houseId: houseId } as any);
+      const list = Array.isArray(res) ? res : (res?.data ?? []);
+      const opts: RoomsOption[] = list.map((r: any) => ({
+        _id: r._id ?? r.id,
+        name: r.name ?? r.code ?? 'Phòng'
+      }));
+      setRooms(opts);
+    } catch (e) {
+      console.error(e);
+      setRooms([]);
+    }
+  }
+  useEffect(() => {
+    if (openAction && formik.values.houseId) {
+      fetchRoomsByHouse(formik.values.houseId);
+    }
+  }, [openAction, formik.values.houseId]);
+
+  // ---- Render --------------------------------------------------------------
   return (
     <Box sx={{ pt: 2 }}>
+      {/* Filter */}
       <form onSubmit={formik.handleSubmit}>
         <Grid container spacing={2} alignItems="center">
-          {/* Cơ sở */}
+          {/* Cơ sở (houses từ API: items) */}
           <Grid item xs={12} sm={6} md={6} xl={2}>
             <FormControl fullWidth>
-              <Select name="location" value={formik.values.location} onChange={formik.handleChange}>
-                <MenuItem value="690 Lạc Long Quân">690 Lạc Long Quân</MenuItem>
-                <MenuItem value="151 Trần Duy Hưng">151 Trần Duy Hưng</MenuItem>
+              <Select
+                sx={INPUT_BASER_STYLE}
+                name="houseId"
+                value={formik.values.houseId}
+                onChange={(e) => {
+                  formik.handleChange(e);
+                  setPageNum(1);
+                  fetchBookingsList(1, pageSize, String(e.target.value));
+                }}
+                disabled={housesLoading || houses.length === 0}
+                displayEmpty
+              >
+                {houses.map((h) => (
+                  <MenuItem key={h._id} value={h._id}>
+                    {h.code /* hoặc `${h.code} — ${h.address}` */}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -147,6 +237,7 @@ function Orders() {
           {/* Tên khách */}
           <Grid item xs={12} sm={6} md={6} xl={2}>
             <TextField
+              sx={INPUT_BASER_STYLE}
               fullWidth
               name="customerName"
               placeholder="Tên khách hàng"
@@ -158,24 +249,40 @@ function Orders() {
           {/* Từ ngày */}
           <Grid item xs={12} sm={6} md={6} xl={2}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DesktopDatePicker value={formik.values.fromDate} onChange={(val) => formik.setFieldValue('fromDate', val)} />
+              <DesktopDatePicker
+                sx={INPUT_BASER_STYLE}
+                value={formik.values.fromDate}
+                onChange={(val) => formik.setFieldValue('fromDate', val)}
+                label="Từ ngày"
+              />
             </LocalizationProvider>
           </Grid>
 
           {/* Đến ngày */}
           <Grid item xs={12} sm={6} md={6} xl={2}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DesktopDatePicker value={formik.values.toDate} onChange={(val) => formik.setFieldValue('toDate', val)} />
+              <DesktopDatePicker
+                sx={INPUT_BASER_STYLE}
+                value={formik.values.toDate}
+                onChange={(val) => formik.setFieldValue('toDate', val)}
+                label="Đến ngày"
+              />
             </LocalizationProvider>
           </Grid>
 
-          {/* Nút Tìm kiếm */}
+          {/* Nút */}
           <Grid item>
             <Stack flexDirection="row" gap={2}>
               <Button type="submit" variant="contained" startIcon={<SearchNormal1 />}>
                 Tìm kiếm
               </Button>
-              <Button color="primary" variant="contained" onClick={() => setOpenAction(true)} startIcon={<Add />}>
+              <Button
+                color="primary"
+                variant="contained"
+                onClick={() => setOpenAction(true)}
+                startIcon={<Add />}
+                disabled={!formik.values.houseId}
+              >
                 Đặt phòng
               </Button>
             </Stack>
@@ -183,28 +290,45 @@ function Orders() {
         </Grid>
       </form>
 
+      {/* Bảng */}
       <Box sx={{ py: 2 }}>
         <CommonTable
           columns={columns}
           data={rows}
-          totalItems={brands?.length}
+          totalItems={total}
           pageNum={pageNum}
           pageSize={pageSize}
-          onPageChange={setPageNum}
+          onPageChange={(p) => {
+            setPageNum(p);
+            fetchBookingsList(p, pageSize);
+          }}
           onPageSizeChange={(size) => {
             setPageSize(size);
             setPageNum(1);
+            fetchBookingsList(1, size);
           }}
-          getRowKey={(row, index) => `${row.id}-${index}`}
+          getRowKey={(row) => row.id}
           scroll={{ y: 600 }}
           loading={loading}
         />
       </Box>
 
-      <ActionBookingModal open={openAction} onClose={() => setOpenAction(false)} />
+      {/* Modal tạo đơn */}
+      <ActionBookingModal
+        open={openAction}
+        onClose={() => setOpenAction(false)}
+        houseId={formik.values.houseId}
+        rooms={rooms}
+        onCreated={() => {
+          setOpenAction(false);
+          fetchBookingsList(1, pageSize);
+        }}
+      />
+
+      {/* Modal confirm huỷ (TODO: ghép DELETE /api/bookings/[id]) */}
       <DeleteConfirmModal
         title="Hủy đặt phòng"
-        description="Bạn có chắc chắn muốn hủy đặt phòng không ?"
+        description={`Bạn có chắc chắn muốn hủy đặt phòng tại ${selectedHouseLabel} không?`}
         open={isDeleteModal}
         onConfirm={() => setIsDeleteModal(false)}
         onClose={() => setIsDeleteModal(false)}
@@ -212,5 +336,3 @@ function Orders() {
     </Box>
   );
 }
-
-export default Orders;

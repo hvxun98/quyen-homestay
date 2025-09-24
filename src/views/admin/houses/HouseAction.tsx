@@ -1,195 +1,203 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Grid,
-  TextField,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl
-} from '@mui/material';
-import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, TextField, CircularProgress } from '@mui/material';
 import { useFormik } from 'formik';
-import dayjs from 'dayjs';
+import * as Yup from 'yup';
+import { notifySuccess } from 'utils/notify';
+import { createHouse, updateHouse } from 'services/houses';
 
-const hours = Array.from({ length: 24 }, (_, i) => i);
-const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 45, 50, 55];
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: () => void; // gọi sau khi tạo/sửa thành công để refresh list
+  initialData?: {
+    _id?: string;
+    id?: string; // id nhà (1 trong 2)
+    code?: string;
+    address?: string;
+    numOfFloors?: number | string;
+    numOfRooms?: number | string;
+    price?: number | string;
+  };
+};
 
-const HouseActionModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
-  const formik = useFormik({
+type HouseFormValues = {
+  code: string;
+  address: string;
+  numOfFloors: string; // giữ string để dễ nhập
+  numOfRooms: string;
+  price: string; // giữ dạng số thô '1000000' (input hiển thị dạng VNĐ)
+};
+
+const validationSchema = Yup.object({
+  code: Yup.string().required('Vui lòng nhập mã'),
+  address: Yup.string().required('Vui lòng nhập địa chỉ'),
+  numOfFloors: Yup.number().typeError('Phải là số').min(0).required('Vui lòng nhập số tầng'),
+  numOfRooms: Yup.number().typeError('Phải là số').min(0).required('Vui lòng nhập số phòng'),
+  price: Yup.number().typeError('Phải là số').min(0).required('Vui lòng nhập giá thuê')
+});
+
+// helpers format/parse VNĐ
+const toVND = (val: string | number) => new Intl.NumberFormat('vi-VN').format(Number(val || 0));
+const onlyDigits = (s: string) => s.replace(/\D/g, '');
+
+export default function HouseActionModal({ open, onClose, onSuccess, initialData }: Props) {
+  const [submitting, setSubmitting] = useState(false);
+
+  const isEdit = useMemo(() => Boolean(initialData && (initialData._id || initialData.id)), [initialData]);
+  const editingId = useMemo(() => String(initialData?._id || initialData?.id || ''), [initialData]);
+
+  const formik = useFormik<HouseFormValues>({
+    enableReinitialize: true,
     initialValues: {
-      room: 'Std 201 LLQ',
-      name: 'king- Lê Khangg',
-      phone: '0975506695',
-      checkinDate: dayjs('2025-07-11'),
-      checkinHour: 10,
-      checkinMinute: 0,
-      checkoutDate: dayjs('2025-07-11'),
-      checkoutHour: 16,
-      checkoutMinute: 0,
-      price: '370000',
-      source: 'Cộng tác viên',
-      note: ''
+      code: initialData?.code ?? '',
+      address: initialData?.address ?? '',
+      numOfFloors: initialData?.numOfFloors != null ? String(initialData.numOfFloors) : '',
+      numOfRooms: initialData?.numOfRooms != null ? String(initialData.numOfRooms) : '',
+      price: initialData?.price != null ? String(initialData.price) : ''
     },
-    onSubmit: (values) => {
-      console.log('Form submitted:', values);
-      onClose();
+    validationSchema,
+    onSubmit: async (values) => {
+      setSubmitting(true);
+      try {
+        const payload = {
+          code: values.code.trim(),
+          address: values.address.trim(),
+          numOfFloors: Number(values.numOfFloors),
+          numOfRooms: Number(values.numOfRooms),
+          price: Number(values.price)
+        };
+
+        if (isEdit && editingId) {
+          await updateHouse(editingId, payload);
+          notifySuccess('Cập nhật nhà thành công');
+        } else {
+          await createHouse(payload);
+          notifySuccess('Thêm nhà thành công');
+          // reset form sau khi tạo mới
+          formik.resetForm();
+        }
+
+        onClose();
+        onSuccess?.(); // refresh bảng
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e) {
+        // lỗi đã được interceptor hiển thị notifyError
+      } finally {
+        setSubmitting(false);
+      }
     }
   });
 
+  // Khi đóng modal trong lúc đang sửa -> không giữ lại định dạng giá
+  useEffect(() => {
+    if (!open && !isEdit) {
+      formik.resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const err = (k: keyof HouseFormValues) => Boolean(formik.touched[k] && formik.errors[k]);
+  const helper = (k: keyof HouseFormValues) => (formik.touched[k] && formik.errors[k] ? String(formik.errors[k]) : undefined);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Chỉnh sửa đơn đặt</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm">
+      <DialogTitle>{isEdit ? 'Chỉnh sửa nhà' : 'Thêm nhà'}</DialogTitle>
+
       <form onSubmit={formik.handleSubmit}>
         <DialogContent>
           <Grid container spacing={2}>
-            {/* Phòng */}
-            <Grid item xs={12}>
-              <FormControl sx={{ maxWidth: '50%', width: '100%' }}>
-                <InputLabel>Phòng</InputLabel>
-                <Select name="room" label="Phòng" value={formik.values.room} onChange={formik.handleChange}>
-                  <MenuItem value="Std 201 LLQ">Std 201 LLQ</MenuItem>
-                  <MenuItem value="Std 501 LLQ">Std 501 LLQ</MenuItem>
-                </Select>
-              </FormControl>
+            {/* Mã */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Tên"
+                name="code"
+                value={formik.values.code}
+                onChange={formik.handleChange}
+                error={err('code')}
+                helperText={helper('code')}
+              />
             </Grid>
 
-            {/* Tên */}
-            <Grid item xs={6}>
-              <TextField fullWidth name="name" label="Tên" value={formik.values.name} onChange={formik.handleChange} />
-            </Grid>
-
-            {/* SĐT */}
-            <Grid item xs={6}>
-              <TextField fullWidth name="phone" label="Số điện thoại" value={formik.values.phone} onChange={formik.handleChange} />
-            </Grid>
-
-            {/* Checkin Date + Time */}
-            <Grid item xs={3}>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DesktopDatePicker
-                  label="Checkin"
-                  value={formik.values.checkinDate}
-                  onChange={(value) => formik.setFieldValue('checkinDate', value)}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item xs={1.5}>
-              <FormControl fullWidth>
-                <InputLabel>Giờ</InputLabel>
-                <Select
-                  name="checkinHour"
-                  value={formik.values.checkinHour}
-                  onChange={formik.handleChange}
-                  MenuProps={{ PaperProps: { style: { maxHeight: 200 } } }}
-                >
-                  {hours.map((h) => (
-                    <MenuItem key={h} value={h}>
-                      {h}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={1.5}>
-              <FormControl fullWidth>
-                <InputLabel>Phút</InputLabel>
-                <Select name="checkinMinute" value={formik.values.checkinMinute} onChange={formik.handleChange}>
-                  {minutes.map((m) => (
-                    <MenuItem key={m} value={m}>
-                      {m}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Checkout Date + Time */}
-            <Grid item xs={3}>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DesktopDatePicker
-                  label="Checkout"
-                  value={formik.values.checkoutDate}
-                  onChange={(value) => formik.setFieldValue('checkoutDate', value)}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item xs={1.5}>
-              <FormControl fullWidth>
-                <InputLabel>Giờ</InputLabel>
-                <Select
-                  name="checkoutHour"
-                  value={formik.values.checkoutHour}
-                  onChange={formik.handleChange}
-                  MenuProps={{ PaperProps: { style: { maxHeight: 200 } } }}
-                >
-                  {hours.map((h) => (
-                    <MenuItem key={h} value={h}>
-                      {h}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={1.5}>
-              <FormControl fullWidth>
-                <InputLabel>Phút</InputLabel>
-                <Select name="checkoutMinute" value={formik.values.checkoutMinute} onChange={formik.handleChange}>
-                  {minutes.map((m) => (
-                    <MenuItem key={m} value={m}>
-                      {m}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Giá */}
-            <Grid item xs={6}>
-              <TextField fullWidth name="price" label="Giá" value={formik.values.price} onChange={formik.handleChange} />
-            </Grid>
-
-            {/* Nguồn */}
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Nguồn</InputLabel>
-                <Select name="source" value={formik.values.source} onChange={formik.handleChange}>
-                  <MenuItem value="Facebook">Facebook</MenuItem>
-                  <MenuItem value="Cộng tác viên">Cộng tác viên</MenuItem>
-                  <MenuItem value="Khách quen">Khách quen</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Ghi chú */}
+            {/* Địa chỉ */}
             <Grid item xs={12}>
               <TextField
-                name="note"
-                label="Ghi chú"
-                value={formik.values.note}
-                onChange={formik.handleChange}
                 fullWidth
-                multiline
-                rows={3}
-                placeholder="Nhập ghi chú"
+                label="Địa chỉ"
+                name="address"
+                value={formik.values.address}
+                onChange={formik.handleChange}
+                error={err('address')}
+                helperText={helper('address')}
+              />
+            </Grid>
+
+            {/* Số tầng */}
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Số tầng"
+                name="numOfFloors"
+                value={formik.values.numOfFloors}
+                onChange={formik.handleChange}
+                error={err('numOfFloors')}
+                helperText={helper('numOfFloors')}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            {/* Số phòng */}
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Số phòng"
+                name="numOfRooms"
+                value={formik.values.numOfRooms}
+                onChange={formik.handleChange}
+                error={err('numOfRooms')}
+                helperText={helper('numOfRooms')}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            {/* Giá thuê (VNĐ) – input format */}
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Giá thuê (VND)"
+                name="price"
+                value={formik.values.price ? toVND(formik.values.price) : ''} // hiển thị 1.000.000
+                onChange={(e) => {
+                  const raw = onlyDigits(e.target.value);
+                  formik.setFieldValue('price', raw);
+                  if (!formik.touched.price) formik.setFieldTouched('price', true, false);
+                }}
+                error={err('price')}
+                helperText={helper('price')}
+                inputMode="numeric"
               />
             </Grid>
           </Grid>
         </DialogContent>
+
         <DialogActions>
-          <Button onClick={onClose}>Đóng</Button>
-          <Button type="submit" variant="contained">
-            Sửa
+          <Button onClick={onClose} disabled={submitting}>
+            Đóng
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={18} /> : undefined}
+          >
+            {isEdit ? 'Lưu' : 'Thêm'}
           </Button>
         </DialogActions>
       </form>
     </Dialog>
   );
-};
-
-export default HouseActionModal;
+}

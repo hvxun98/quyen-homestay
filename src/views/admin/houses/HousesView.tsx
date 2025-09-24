@@ -1,174 +1,119 @@
 'use client';
-import { Box, Button, FormControl, Grid, MenuItem, Select, TextField } from '@mui/material';
+
+import { Box, Button, Stack } from '@mui/material';
 import { Column, CommonTable } from 'components/table/CommonTable';
-import { Add, Edit, SearchNormal1, Trash } from 'iconsax-react';
+import { Add, Edit, Trash } from 'iconsax-react';
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import { getBrands } from 'services/users';
-import { BrandProps } from 'types/brands';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { Stack } from '@mui/material';
 import HouseActionModal from './HouseAction';
 import DeleteConfirmModal from 'components/modal/delete-modal/DeleteConfirmModal';
-import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 
-function Orders() {
-  const [brands, setBrands] = useState<BrandProps[]>([]);
+import { getHouses, deleteHouse } from 'services/houses'; // ✅ dùng service
+import { notifySuccess } from 'utils/notify'; // ✅ toast thành công
+
+function HouseView() {
   const [pageNum, setPageNum] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
+
   const [openAction, setOpenAction] = useState(false);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const validationSchema = Yup.object({
-    name: Yup.string().required('Vui lòng nhập tên chi nhánh')
-  });
+  const [houses, setHouses] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [selectedHouse, setSelectedHouse] = useState<any | null>(null);
 
-  const formik = useFormik({
-    initialValues: {
-      name: '',
-      description: '',
-      location: '690 Lạc Long Quân',
-      customerName: '',
-      fromDate: dayjs('2025-07-01'),
-      toDate: dayjs('2025-07-31')
-    },
-    validationSchema,
-    onSubmit: (values) => {
-      console.log(values);
+  const getAllHouses = async () => {
+    setLoading(true);
+    try {
+      // ⚠️ service getHouses nhận pageNum/pageSize
+      const res = await getHouses({ pageNum, pageSize });
+      setHouses(res.items || []);
+      setTotal(res.total || 0);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      setHouses([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
   useEffect(() => {
-    getAllBrand();
-  }, []);
+    getAllHouses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum, pageSize]);
 
-  const getAllBrand = async () => {
-    setLoading(true);
-    const res = await getBrands();
-    setBrands(res.data);
-    setLoading(false);
+  const onConfirmDelete = async () => {
+    if (!selectedHouse?._id) return;
+    setDeleting(true);
+    try {
+      await deleteHouse(selectedHouse._id);
+      notifySuccess('Xoá nhà thành công');
+      setIsDeleteModal(false);
+      setSelectedHouse(null);
+      // refresh list
+      // nếu sau xoá trang hiện tại rỗng, có thể lùi pageNum (optional)
+      getAllHouses();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const columns: Column<any>[] = [
-    { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'orderId' },
-    { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'name' },
-    { label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />, field: 'room' },
-    { label: <FormattedMessage id="Checkin - Checkout" defaultMessage="Checkin - Checkout" />, field: 'check-in-out' },
-    { label: <FormattedMessage id="Ngày tạo" defaultMessage="Ngày tạo" />, field: 'createdDate' },
-    { label: <FormattedMessage id="Giá" defaultMessage="Giá" />, field: 'price' },
-    { label: <FormattedMessage id="Trạng thái" defaultMessage="Trạng thái" />, field: 'status' },
+    { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'code' },
+    { label: <FormattedMessage id="Địa chỉ" defaultMessage="Địa chỉ" />, field: 'address' },
+    { label: <FormattedMessage id="Số tầng" defaultMessage="Số tầng" />, field: 'numOfFloors' },
+    { label: <FormattedMessage id="Số phòng" defaultMessage="Số phòng" />, field: 'numOfRooms' },
+    {
+      label: <FormattedMessage id="Giá thuê" defaultMessage="Giá thuê" />,
+      field: 'price',
+      render: (row) => new Intl.NumberFormat('vi-VN').format(row.price) + ' VND'
+    },
     {
       label: <FormattedMessage id="Tác vụ" defaultMessage="Tác vụ" />,
-      render: () => {
-        return (
-          <Stack flexDirection="row" gap={1}>
-            <Button color="primary" variant="contained" onClick={() => setOpenAction(true)} startIcon={<Edit />}>
-              Sửa
-            </Button>
-            <Button color="error" variant="contained" onClick={() => setIsDeleteModal(true)} startIcon={<Trash />}>
-              Huỷ
-            </Button>
-          </Stack>
-        );
-      }
-    }
-  ];
-
-  const rows = [
-    {
-      id: 1,
-      orderId: 'OD_8082',
-      name: 'Hoàng Test',
-      room: 'Std 501 LLQ',
-      'check-in-out': '12:00 08/07/2025 - 12:00 09/07/2025',
-      createdDate: '11:18 08/07/2025',
-      price: '1.000.000 VND',
-      status: 'Huỷ'
-    },
-    {
-      id: 2,
-      orderId: 'OD_8073',
-      name: 'king- Lê Khangg',
-      room: 'Std 201 LLQ',
-      'check-in-out': '10:00 11/07/2025 - 16:00 11/07/2025',
-      createdDate: '10:14 08/07/2025',
-      price: '370.000 VND',
-      status: 'Thành công'
-    },
-    {
-      id: 3,
-      orderId: 'OD_8044',
-      name: 'King-Nguyễn Bảo Lâm',
-      room: 'Std 501 LLQ',
-      'check-in-out': '12:00 09/07/2025 - 18:00 09/07/2025',
-      createdDate: '21:27 07/07/2025',
-      price: '370.000 VND',
-      status: 'Thành công'
+      render: (row) => (
+        <Stack flexDirection="row" gap={1}>
+          <Button
+            color="primary"
+            variant="contained"
+            onClick={() => {
+              setSelectedHouse(row);
+              setOpenAction(true);
+            }}
+            startIcon={<Edit />}
+          >
+            Sửa
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              setSelectedHouse(row);
+              setIsDeleteModal(true);
+            }}
+            startIcon={<Trash />}
+          >
+            Xoá
+          </Button>
+        </Stack>
+      ),
+      width: 200
     }
   ];
 
   return (
     <Box sx={{ pt: 2 }}>
-      <form onSubmit={formik.handleSubmit}>
-        <Grid container spacing={2} alignItems="center">
-          {/* Cơ sở */}
-          <Grid item xs={12} sm={6} md={6} xl={2}>
-            <FormControl fullWidth>
-              <Select name="location" value={formik.values.location} onChange={formik.handleChange}>
-                <MenuItem value="690 Lạc Long Quân">690 Lạc Long Quân</MenuItem>
-                <MenuItem value="151 Trần Duy Hưng">151 Trần Duy Hưng</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Tên khách */}
-          <Grid item xs={12} sm={6} md={6} xl={2}>
-            <TextField
-              fullWidth
-              name="customerName"
-              placeholder="Tên khách hàng"
-              value={formik.values.customerName}
-              onChange={formik.handleChange}
-            />
-          </Grid>
-
-          {/* Từ ngày */}
-          <Grid item xs={12} sm={6} md={6} xl={2}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DesktopDatePicker value={formik.values.fromDate} onChange={(val) => formik.setFieldValue('fromDate', val)} />
-            </LocalizationProvider>
-          </Grid>
-
-          {/* Đến ngày */}
-          <Grid item xs={12} sm={6} md={6} xl={2}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DesktopDatePicker value={formik.values.toDate} onChange={(val) => formik.setFieldValue('toDate', val)} />
-            </LocalizationProvider>
-          </Grid>
-
-          {/* Nút Tìm kiếm */}
-          <Grid item>
-            <Stack flexDirection="row" gap={2}>
-              <Button type="submit" variant="contained" startIcon={<SearchNormal1 />}>
-                Tìm kiếm
-              </Button>
-              <Button color="primary" variant="contained" onClick={() => setOpenAction(true)} startIcon={<Add />}>
-                Đặt phòng
-              </Button>
-            </Stack>
-          </Grid>
-        </Grid>
-      </form>
+      <Button color="primary" variant="contained" onClick={() => setOpenAction(true)} startIcon={<Add />}>
+        Thêm nhà
+      </Button>
 
       <Box sx={{ py: 2 }}>
         <CommonTable
           columns={columns}
-          data={rows}
-          totalItems={brands?.length}
+          data={houses}
+          totalItems={total}
           pageNum={pageNum}
           pageSize={pageSize}
           onPageChange={setPageNum}
@@ -176,22 +121,36 @@ function Orders() {
             setPageSize(size);
             setPageNum(1);
           }}
-          getRowKey={(row, index) => `${row.id}-${index}`}
+          getRowKey={(row, index) => `${row._id || row.code}-${index}`}
           scroll={{ y: 600 }}
           loading={loading}
         />
       </Box>
 
-      <HouseActionModal open={openAction} onClose={() => setOpenAction(false)} />
+      <HouseActionModal
+        open={openAction}
+        onClose={() => {
+          setOpenAction(false);
+          setSelectedHouse(null);
+        }}
+        onSuccess={() => getAllHouses()}
+        initialData={selectedHouse || undefined}
+      />
+
       <DeleteConfirmModal
-        title="Hủy đặt phòng"
-        description="Bạn có chắc chắn muốn hủy đặt phòng không ?"
+        title="Xoá nhà"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xoá nhà <strong>{selectedHouse?.code}</strong> không ?
+          </span>
+        }
         open={isDeleteModal}
-        onConfirm={() => setIsDeleteModal(false)}
+        onConfirm={onConfirmDelete}
         onClose={() => setIsDeleteModal(false)}
+        loading={deleting}
       />
     </Box>
   );
 }
 
-export default Orders;
+export default HouseView;

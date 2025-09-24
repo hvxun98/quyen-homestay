@@ -2,12 +2,15 @@
 
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Typography } from '@mui/material';
 import { DeleteOutline } from '@mui/icons-material';
+import LoadingButton from 'components/@extended/LoadingButton';
+import React from 'react';
 interface DeleteConfirmModalProps {
   open: boolean;
   title?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   confirmText?: string;
   cancelText?: string;
+  loading?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -18,6 +21,7 @@ export default function DeleteConfirmModal({
   description = 'Bạn có chắc chắn muốn xoá mục này? Hành động này không thể hoàn tác.',
   confirmText = 'Xoá',
   cancelText = 'Huỷ',
+  loading,
   onConfirm,
   onClose
 }: DeleteConfirmModalProps) {
@@ -34,9 +38,9 @@ export default function DeleteConfirmModal({
         <Button onClick={onClose} variant="outlined">
           {cancelText}
         </Button>
-        <Button onClick={onConfirm} variant="contained" color="error">
+        <LoadingButton onClick={onConfirm} variant="contained" color="error" loading={loading}>
           {confirmText}
-        </Button>
+        </LoadingButton>
       </DialogActions>
     </Dialog>
   );

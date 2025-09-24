@@ -1,12 +1,12 @@
 import DashboardLayout from 'layout/DashboardLayout';
 import AuthGuard from 'utils/route-guard/AuthGuard';
-import HouseView from 'views/admin/houses/HousesView';
+import RoomsView from 'views/admin/rooms/RoomsView';
 
 const OrdersPage = () => {
   return (
     <AuthGuard>
       <DashboardLayout>
-        <HouseView />
+        <RoomsView />
       </DashboardLayout>
     </AuthGuard>
   );

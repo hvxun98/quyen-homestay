@@ -2,15 +2,14 @@ import { Schema, model, models, Types } from 'mongoose';
 
 export type RoomStatus = 'available' | 'booked' | 'occupied' | 'maintenance';
 
-export interface IRoom {
-  _id: any;
+interface IRoom {
+  _id: Types.ObjectId;
   houseId: Types.ObjectId;
-  name: string; // "Phòng 201"
-  floor?: number;
-  type?: string; // "Standard" | "Vip"
-  status: RoomStatus; // hiển thị nhanh trên sơ đồ
-  pricePerNight?: number;
-  capacity?: number;
+  code: string;
+  codeNorm: string;
+  name: string;
+  type: 'Standard' | 'VIP';
+  status?: RoomStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -18,17 +17,22 @@ export interface IRoom {
 const RoomSchema = new Schema<IRoom>(
   {
     houseId: { type: Schema.Types.ObjectId, ref: 'House', required: true, index: true },
-    name: { type: String, required: true },
-    floor: { type: Number },
-    type: { type: String },
-    status: { type: String, enum: ['available', 'booked', 'occupied', 'maintenance'], default: 'available', index: true },
-    pricePerNight: { type: Number },
-    capacity: { type: Number }
+    code: { type: String, required: true, trim: true },
+    codeNorm: { type: String, required: true, trim: true },
+    name: { type: String, required: true, trim: true },
+    type: { type: String, enum: ['Standard', 'VIP'], required: true },
+    status: { type: String, enum: ['available', 'booked', 'occupied', 'maintenance'], default: 'available' }
   },
   { timestamps: true }
 );
 
-// 1 nhà không nên có 2 phòng trùng tên
-RoomSchema.index({ houseId: 1, name: 1 }, { unique: true });
+// Unique trong phạm vi 1 nhà
+RoomSchema.index({ houseId: 1, codeNorm: 1 }, { unique: true });
+
+// Phòng khi update code thủ công (nếu có), vẫn đồng bộ codeNorm
+RoomSchema.pre('validate', function (next) {
+  if (this.code) this.codeNorm = this.code.trim().toUpperCase();
+  next();
+});
 
 export default models.Room || model<IRoom>('Room', RoomSchema);
