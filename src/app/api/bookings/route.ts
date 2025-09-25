@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
 /**
  * Body (từ form):
  * {
- *   houseId: string, roomId: string,
+ *   roomId: string,
  *   customerName: string, customerPhone?: string,
  *   checkInDate: "dd/mm/yyyy" | "YYYY-MM-DD", checkInHour: number, checkInMinute: number,
  *   checkOutDate: string,                      checkOutHour: number, checkOutMinute: number,
@@ -128,24 +128,23 @@ export async function POST(req: NextRequest) {
   await dbConnect();
   const body = await req.json();
 
-  // validate required
-  const required = ['houseId', 'roomId', 'customerName', 'checkInDate', 'checkOutDate'] as const;
+  const required = ['roomId', 'customerName', 'checkInDate', 'checkOutDate'] as const;
   for (const k of required) {
     if (body[k] == null || body[k] === '') {
       return NextResponse.json({ error: `Missing field: ${k}` }, { status: 400 });
     }
   }
 
+  // tìm room để lấy houseId
+  const room = await Room.findOne({ _id: body.roomId }).lean();
+  if (!room) {
+    return NextResponse.json({ error: 'Room not found' }, { status: 400 });
+  }
+
   const checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
   const checkOut = combineLocal(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
   if (!(checkOut > checkIn)) {
     return NextResponse.json({ error: 'Checkout must be after checkin' }, { status: 400 });
-  }
-
-  // room thuộc house?
-  const room = await Room.findOne({ _id: body.roomId, houseId: body.houseId }).lean();
-  if (!room) {
-    return NextResponse.json({ error: 'Room not in selected house' }, { status: 400 });
   }
 
   // trùng lịch?
@@ -163,10 +162,10 @@ export async function POST(req: NextRequest) {
   const n = await nextSeq('booking');
   const orderCode = `OD_${String(n).padStart(4, '0')}`;
 
-  // tạo đơn
+  // tạo đơn, lấy houseId từ room
   const doc = await Booking.create({
     orderCode,
-    houseId: body.houseId,
+    houseId: (room as any).houseId,
     roomId: body.roomId,
     customerName: body.customerName,
     customerPhone: body.customerPhone ?? undefined,

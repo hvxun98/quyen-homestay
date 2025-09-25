@@ -7,7 +7,7 @@ import Stack from '@mui/material/Stack';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { MonthCalendar } from '@mui/x-date-pickers/MonthCalendar';
 import { YearCalendar } from '@mui/x-date-pickers/YearCalendar';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import Box from '@mui/material/Box';
 

@@ -16,8 +16,9 @@ import { INPUT_BASER_STYLE } from 'constants/style';
 
 // Services (bạn đã có axios fetcher)
 import { getHouses } from 'services/houses';
-import { getRooms } from 'services/rooms';
+import { getRoomOptions } from 'services/rooms';
 import { getBookings } from 'services/bookings';
+import { RoomGroup } from 'types/room';
 
 // ---- Types khớp API ---------------------------------------------------------
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -39,7 +40,6 @@ type BookingRow = {
   houseId: string;
 };
 
-type RoomsOption = { _id: string; name: string };
 type HouseOption = { _id: string; code: string; address?: string };
 
 function toYMD(d: Dayjs | null) {
@@ -52,13 +52,30 @@ export default function Orders() {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [openAction, setOpenAction] = useState(false);
-  const [rooms, setRooms] = useState<RoomsOption[]>([]);
   const [rows, setRows] = useState<BookingRow[]>([]);
   const [total, setTotal] = useState(0);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
 
   const [houses, setHouses] = useState<HouseOption[]>([]);
   const [housesLoading, setHousesLoading] = useState(false);
+  const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getRoomOptions();
+        const items: RoomGroup[] = (res?.items ?? []).map((g: any) => ({
+          houseId: String(g.houseId ?? g._id),
+          houseLabel: g.houseLabel,
+          rooms: (g.rooms ?? []).map((r: any) => ({ _id: String(r._id), label: r.label ?? r.name ?? r.code }))
+        }));
+        setRoomGroups(items);
+      } catch (e) {
+        console.error(e);
+        setRoomGroups([]);
+      }
+    })();
+  }, []);
 
   // ---- Form filter ---------------------------------------------------------
   const validationSchema = Yup.object({
@@ -87,7 +104,6 @@ export default function Orders() {
 
   // ---- Columns hiển thị ----------------------------------------------------
   const columns: Column<BookingRow>[] = [
-    { label: <FormattedMessage id="STT" defaultMessage="STT" />, field: 'stt', width: 80 },
     { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'code' },
     { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'name' },
     { label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />, field: 'roomLabel' },
@@ -182,27 +198,6 @@ export default function Orders() {
       setLoading(false);
     }
   }
-
-  // ---- Fetch rooms cho modal theo house hiện tại ---------------------------
-  async function fetchRoomsByHouse(houseId: string) {
-    try {
-      const res = await getRooms({ houseId: houseId } as any);
-      const list = Array.isArray(res) ? res : (res?.data ?? []);
-      const opts: RoomsOption[] = list.map((r: any) => ({
-        _id: r._id ?? r.id,
-        name: r.name ?? r.code ?? 'Phòng'
-      }));
-      setRooms(opts);
-    } catch (e) {
-      console.error(e);
-      setRooms([]);
-    }
-  }
-  useEffect(() => {
-    if (openAction && formik.values.houseId) {
-      fetchRoomsByHouse(formik.values.houseId);
-    }
-  }, [openAction, formik.values.houseId]);
 
   // ---- Render --------------------------------------------------------------
   return (
@@ -314,16 +309,19 @@ export default function Orders() {
       </Box>
 
       {/* Modal tạo đơn */}
-      <ActionBookingModal
-        open={openAction}
-        onClose={() => setOpenAction(false)}
-        houseId={formik.values.houseId}
-        rooms={rooms}
-        onCreated={() => {
-          setOpenAction(false);
-          fetchBookingsList(1, pageSize);
-        }}
-      />
+      {roomGroups?.length > 0 && (
+        <ActionBookingModal
+          open={openAction}
+          booking={undefined}
+          onClose={() => setOpenAction(false)}
+          houseId={formik.values.houseId}
+          roomGroups={roomGroups}
+          onCreated={() => {
+            setOpenAction(false);
+            fetchBookingsList(1, pageSize);
+          }}
+        />
+      )}
 
       {/* Modal confirm huỷ (TODO: ghép DELETE /api/bookings/[id]) */}
       <DeleteConfirmModal

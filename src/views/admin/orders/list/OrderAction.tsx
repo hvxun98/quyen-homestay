@@ -1,5 +1,5 @@
 // src/components/OrderAction.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,11 +12,11 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  ListSubheader,
   RadioGroup,
   FormControlLabel,
   Radio,
-  CircularProgress
+  CircularProgress,
+  SelectChangeEvent
 } from '@mui/material';
 import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -25,7 +25,6 @@ import * as Yup from 'yup';
 import dayjs, { Dayjs } from 'dayjs';
 
 // services
-import { getRoomOptions } from 'services/rooms';
 import { createBooking, updateBooking } from 'services/bookings';
 
 // types
@@ -38,6 +37,7 @@ type Props = {
   houseId: string; // cơ sở đang chọn ở bảng ngoài
   onCreated?: () => void; // reload list sau khi submit
   defaultRoomId?: string;
+  roomGroups: RoomGroup[]; // danh sách phòng theo từng cơ sở
 
   /** Nếu truyền booking => modal ở chế độ SỬA */
   booking?: {
@@ -81,7 +81,7 @@ function splitToForm(dt: string | Date) {
   return { date: d, hour: d.hour(), minute: d.minute() };
 }
 
-function buildInitialValues(houseId: string, groups: RoomGroup[], defaultRoomId?: string, booking?: Props['booking']) {
+function buildInitialValues(booking?: Props['booking']) {
   // nếu edit => bind từ booking
   if (booking) {
     const ci = splitToForm(booking.checkIn);
@@ -103,14 +103,8 @@ function buildInitialValues(houseId: string, groups: RoomGroup[], defaultRoomId?
     };
   }
 
-  // create => chọn room mặc định theo groups/houseId hoặc theo defaultRoomId
-  let fallbackRoom = defaultRoomId || '';
-  if (!fallbackRoom) {
-    const g = groups.find((x) => x.houseId === houseId) ?? groups[0];
-    fallbackRoom = g?.rooms?.[0]?._id ?? '';
-  }
   return {
-    roomId: fallbackRoom,
+    roomId: '',
     customerName: '',
     customerPhone: '',
     checkInDate: dayjs(),
@@ -128,49 +122,17 @@ function buildInitialValues(houseId: string, groups: RoomGroup[], defaultRoomId?
 
 // ---------------------------------------------------------------------------
 
-const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defaultRoomId, booking }) => {
-  const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(false);
-
-  // load options phòng (lọc theo houseId để dropdown gọn đúng ảnh)
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      try {
-        setLoadingRooms(true);
-        const res = await getRoomOptions();
-        const items: RoomGroup[] = (res?.items ?? []).map((g: any) => ({
-          houseId: String(g.houseId ?? g._id),
-          houseLabel: g.houseLabel,
-          rooms: (g.rooms ?? []).map((r: any) => ({ _id: String(r._id), label: r.label ?? r.name ?? r.code }))
-        }));
-        setRoomGroups(items);
-      } catch (e) {
-        console.error(e);
-        setRoomGroups([]);
-      } finally {
-        setLoadingRooms(false);
-      }
-    })();
-  }, [open, houseId]);
-
+const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defaultRoomId, booking, roomGroups }) => {
   // formik
-  const initialValues = useMemo(
-    () => buildInitialValues(houseId, roomGroups, defaultRoomId, booking),
-    // chỉ rebuild khi mở modal, danh sách groups đổi, house đổi, hoặc booking đổi
-    // tránh rebuild mỗi render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open, houseId, roomGroups.map((g) => g.houseId + ':' + g.rooms.length).join('|'), defaultRoomId, booking?.id]
-  );
+  const initialValues = buildInitialValues(booking);
 
   const formik = useFormik({
     validationSchema,
-    initialValues, // không bật enableReinitialize
+    initialValues,
     onSubmit: async (values, { setSubmitting }) => {
       try {
         setSubmitting(true);
         const payload = {
-          houseId,
           roomId: values.roomId,
           customerName: values.customerName.trim(),
           customerPhone: values.customerPhone?.trim() || undefined,
@@ -196,21 +158,13 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
 
         onClose();
         onCreated?.();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e: any) {
-        alert(e?.message || 'Có lỗi xảy ra');
       } finally {
         setSubmitting(false);
       }
     }
   });
-
-  // reset form mỗi lần mở modal (để nhận initialValues mới) — tránh vòng lặp
-  useEffect(() => {
-    if (open) {
-      formik.resetForm({ values: initialValues });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialValues]);
 
   const err = (name: keyof typeof formik.values) => formik.touched[name] && Boolean(formik.errors[name]);
   const helper = (name: keyof typeof formik.values) => (formik.touched[name] ? (formik.errors[name] as string) : '');
@@ -230,23 +184,35 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
                   labelId="room-label"
                   name="roomId"
                   label="Phòng"
-                  value={formik.values.roomId}
-                  onChange={formik.handleChange}
+                  value={formik.values.roomId || ''}
+                  onChange={(e: SelectChangeEvent) => {
+                    const val = e.target.value as string;
+                    console.log('Selected room:', val);
+                    formik.setFieldValue('roomId', val);
+                  }}
                   MenuProps={{ PaperProps: { style: { maxHeight: 360 } } }}
-                  disabled={loadingRooms}
+                  disabled={roomGroups.length === 0}
                 >
-                  {roomGroups.map((g) => (
-                    <React.Fragment key={g.houseId}>
-                      <ListSubheader disableSticky>
-                        <strong>{g.houseLabel}</strong>
-                      </ListSubheader>
-                      {g.rooms.map((r) => (
+                  {roomGroups.flatMap((g) => {
+                    const items: JSX.Element[] = [];
+                    items.push(
+                      <MenuItem
+                        key={`house-${g.houseId}`}
+                        disabled
+                        sx={{ fontWeight: 'bold', bgcolor: 'action.selected', color: 'text.primary' }}
+                      >
+                        {g.houseLabel}
+                      </MenuItem>
+                    );
+                    g.rooms.forEach((r) =>
+                      items.push(
                         <MenuItem key={r._id} value={r._id}>
                           {r.label}
                         </MenuItem>
-                      ))}
-                    </React.Fragment>
-                  ))}
+                      )
+                    );
+                    return items;
+                  })}
                 </Select>
               </FormControl>
             </Grid>

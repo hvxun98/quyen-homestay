@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 // material-ui
 import { Box, Button, Checkbox, FormControl, FormControlLabel, FormHelperText, Stack } from '@mui/material';
 import { LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 // third-party
 import { useFormik } from 'formik';
