@@ -81,21 +81,15 @@ export async function GET(req: NextRequest) {
     Booking.countDocuments(filter)
   ]);
 
-  const rows = items.map((b: any, idx: number) => ({
-    stt: (page - 1) * pageSize + idx + 1,
-    id: String(b._id),
-    code: b.code, // virtual -> orderCode
-    name: b.name, // virtual -> customerName
-    roomLabel: b?.roomId?.name ?? '',
-    checkIn: b.checkIn,
-    checkOut: b.checkOut,
-    createdAt: b.createdAt,
-    price: b.price,
-    status: b.status as OrderStatus,
-    paymentStatus: b.paymentStatus as PayStatus,
-    source: b.source ?? '',
-    houseId: b.houseId
-  }));
+  const rows = items.map((b: any, idx: number) => {
+    const obj = { ...b, id: String(b._id) };
+    // loại bỏ trường nội bộ của Mongo để trả về gọn hơn
+    delete (obj as any)._id;
+    delete (obj as any).__v;
+    // giữ thứ tự/stt nếu cần cho UI
+    (obj as any).stt = (page - 1) * pageSize + idx + 1;
+    return obj;
+  });
 
   return NextResponse.json({
     data: rows,

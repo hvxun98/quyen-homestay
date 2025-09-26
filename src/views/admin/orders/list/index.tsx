@@ -21,24 +21,6 @@ import { getBookings } from 'services/bookings';
 import { RoomGroup } from 'types/room';
 
 // ---- Types khớp API ---------------------------------------------------------
-type PayStatus = 'full' | 'deposit' | 'unpaid';
-type OrderStatus = 'pending' | 'success' | 'cancelled';
-
-type BookingRow = {
-  id: string;
-  stt: number;
-  code: string; // OD_XXXX (virtual)
-  name: string; // customerName (virtual)
-  roomLabel: string;
-  checkIn: string | Date;
-  checkOut: string | Date;
-  createdAt: string | Date;
-  price: number;
-  status: OrderStatus;
-  paymentStatus?: PayStatus;
-  source?: string;
-  houseId: string;
-};
 
 type HouseOption = { _id: string; code: string; address?: string };
 
@@ -52,13 +34,22 @@ export default function Orders() {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [openAction, setOpenAction] = useState(false);
-  const [rows, setRows] = useState<BookingRow[]>([]);
+  const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
 
   const [houses, setHouses] = useState<HouseOption[]>([]);
   const [housesLoading, setHousesLoading] = useState(false);
   const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
+
+  // booking đang được sửa (undefined = tạo mới)
+  const [editingBooking, setEditingBooking] = useState<any | undefined>(undefined);
+
+  // mở modal để sửa booking
+  function handleEdit(row: any) {
+    setEditingBooking(row);
+    setOpenAction(true);
+  }
 
   useEffect(() => {
     (async () => {
@@ -103,10 +94,23 @@ export default function Orders() {
   }, [houses, formik.values.houseId]);
 
   // ---- Columns hiển thị ----------------------------------------------------
-  const columns: Column<BookingRow>[] = [
-    { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'code' },
-    { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'name' },
-    { label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />, field: 'roomLabel' },
+  const columns: Column<any>[] = [
+    { label: <FormattedMessage id="Mã" defaultMessage="Mã" />, field: 'orderCode' },
+    { label: <FormattedMessage id="Tên" defaultMessage="Tên" />, field: 'customerName' },
+    {
+      label: <FormattedMessage id="Phòng" defaultMessage="Phòng" />,
+      field: 'roomId',
+      render: (row: any) => {
+        if (!row) return '';
+        if (row.roomLabel) return row.roomLabel;
+        const rid = row.roomId;
+        if (!rid) return '';
+        if (typeof rid === 'object') {
+          return rid.name ?? rid.label ?? rid.code ?? String(rid._id ?? '');
+        }
+        return String(rid);
+      }
+    },
     {
       label: <FormattedMessage id="Checkin - Checkout" defaultMessage="Checkin - Checkout" />,
       render: (r) => {
@@ -131,7 +135,7 @@ export default function Orders() {
       label: <FormattedMessage id="Tác vụ" defaultMessage="Tác vụ" />,
       render: (r) => (
         <Stack flexDirection="row" gap={1}>
-          <Button color="primary" variant="contained" startIcon={<Edit />} onClick={() => setOpenAction(true)}>
+          <Button color="primary" variant="contained" startIcon={<Edit />} onClick={() => handleEdit(r)}>
             Sửa
           </Button>
           <Button color="error" variant="contained" startIcon={<Trash />} onClick={() => setIsDeleteModal(true)}>
@@ -190,7 +194,7 @@ export default function Orders() {
 
       const data = res?.data ?? res?.rows ?? res ?? [];
       const meta = res?.meta ?? {};
-      setRows(Array.isArray(data) ? data : []);
+      setRows(data);
       setTotal(meta.total ?? (Array.isArray(data) ? data.length : 0));
     } catch (e) {
       console.error(e);
@@ -312,7 +316,7 @@ export default function Orders() {
       {roomGroups?.length > 0 && (
         <ActionBookingModal
           open={openAction}
-          booking={undefined}
+          booking={editingBooking}
           onClose={() => setOpenAction(false)}
           houseId={formik.values.houseId}
           roomGroups={roomGroups}

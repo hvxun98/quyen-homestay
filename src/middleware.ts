@@ -20,7 +20,7 @@ export function middleware(req: NextRequest) {
   if (isPublic(pathname)) return NextResponse.next();
 
   // Chỉ protect các route app
-  const token = req.cookies.get('accessToken')?.value; // httpOnly cookie
+  const token = req.cookies.get('next-auth.session-token')?.value; // httpOnly cookie
   if (!token) {
     const url = req.nextUrl.clone();
     url.pathname = '/login';

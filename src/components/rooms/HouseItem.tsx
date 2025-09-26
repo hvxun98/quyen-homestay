@@ -19,13 +19,11 @@ function HouseItem({ name, totalRooms, type, showMore, rooms }: HouseItemProps) 
       </Typography>
 
       <Grid container spacing={2} sx={{ pt: 2 }}>
-        {Array(7)
-          .fill(1)
-          .map((item, i) => (
-            <Grid item xs={3} key={i}>
-              <RoomCard title={`Phòng ${i}`} color={type} showMore={showMore} />
-            </Grid>
-          ))}
+        {rooms.map((item: any, i: number) => (
+          <Grid item xs={3} key={i}>
+            <RoomCard title={`Phòng ${i}`} color={type} showMore={showMore} />
+          </Grid>
+        ))}
       </Grid>
     </Box>
   );

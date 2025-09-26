@@ -26,6 +26,7 @@ import dayjs, { Dayjs } from 'dayjs';
 
 // services
 import { createBooking, updateBooking } from 'services/bookings';
+import { BookingProps } from 'types/booking';
 
 // types
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -40,18 +41,7 @@ type Props = {
   roomGroups: RoomGroup[]; // danh sách phòng theo từng cơ sở
 
   /** Nếu truyền booking => modal ở chế độ SỬA */
-  booking?: {
-    id: string;
-    roomId: string;
-    customerName: string;
-    customerPhone?: string;
-    checkIn: string | Date;
-    checkOut: string | Date;
-    price: number;
-    source?: string;
-    paymentStatus?: PayStatus;
-    note?: string;
-  };
+  booking?: BookingProps;
 };
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -87,7 +77,7 @@ function buildInitialValues(booking?: Props['booking']) {
     const ci = splitToForm(booking.checkIn);
     const co = splitToForm(booking.checkOut);
     return {
-      roomId: booking.roomId,
+      roomId: booking.roomId?._id,
       customerName: booking.customerName,
       customerPhone: booking.customerPhone ?? '',
       checkInDate: ci.date,
@@ -126,7 +116,10 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
   // formik
   const initialValues = buildInitialValues(booking);
 
+  console.log('booking', booking);
+
   const formik = useFormik({
+    enableReinitialize: true,
     validationSchema,
     initialValues,
     onSubmit: async (values, { setSubmitting }) => {
