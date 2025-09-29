@@ -1,17 +1,18 @@
-// models/Counter.ts
-import { Schema, model, models, Model, Types } from 'mongoose';
+import { Schema, model, models, Model } from 'mongoose';
 
 export interface ICounter {
-  _id: Types.ObjectId;
-  houseId: Types.ObjectId;
+  key: string; // ví dụ: "booking", "invoice", "house:<id>:order"
   seq: number;
 }
 
-const CounterRoomSchema = new Schema<ICounter>({
-  houseId: { type: Schema.Types.ObjectId, ref: 'House', required: true, unique: true, index: true },
-  seq: { type: Number, required: true, default: 0 }
-});
+const CounterSchema = new Schema<ICounter>(
+  {
+    key: { type: String, required: true, unique: true, index: true },
+    seq: { type: Number, required: true, default: 0 }
+  },
+  { timestamps: true }
+);
 
-export const Counter: Model<ICounter> = (models.Counter as Model<ICounter>) || model<ICounter>('CounterRoom', CounterRoomSchema);
+const Counter: Model<ICounter> = (models.Counter as Model<ICounter>) || model<ICounter>('Counter', CounterSchema);
 
 export default Counter;

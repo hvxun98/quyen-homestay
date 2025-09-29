@@ -6,6 +6,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { notifySuccess } from 'utils/notify';
 import { createHouse, updateHouse } from 'services/houses';
+import { toVND } from 'utils/format';
 
 type Props = {
   open: boolean;
@@ -39,7 +40,6 @@ const validationSchema = Yup.object({
 });
 
 // helpers format/parse VNĐ
-const toVND = (val: string | number) => new Intl.NumberFormat('vi-VN').format(Number(val || 0));
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
 export default function HouseActionModal({ open, onClose, onSuccess, initialData }: Props) {

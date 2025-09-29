@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
-import { nextSeq } from 'lib/counterBase';
+import { nextSeq } from 'lib/counter';
 
 // ---- Helpers ---------------------------------------------------------------
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
   const checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
   const checkOut = combineLocal(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
   if (!(checkOut > checkIn)) {
-    return NextResponse.json({ error: 'Checkout must be after checkin' }, { status: 400 });
+    return NextResponse.json({ error: 'Thời gian checkout phải sau checkin' }, { status: 400 });
   }
 
   // trùng lịch?
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     checkOut: { $gt: checkIn }
   });
   if (overlapping) {
-    return NextResponse.json({ error: 'Time range overlaps an existing booking' }, { status: 409 });
+    return NextResponse.json({ error: 'Khoảng thời gian chồng chéo với đặt phòng hiện có' }, { status: 409 });
   }
 
   // sinh mã đơn

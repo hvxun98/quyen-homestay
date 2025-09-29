@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
-import Counter, { ICounter } from 'models/Counter';
 import House from 'models/House';
+import { nextSeq } from './counter';
 
 function shortFromAddress(address?: string): string {
   if (!address) return 'HOUSE';
@@ -19,16 +19,11 @@ function shortFromAddress(address?: string): string {
 }
 
 export async function nextRoomCode(houseId: Types.ObjectId) {
-  // ✅ Gõ kiểu rõ ràng cho lean()
-  const counter = await Counter.findOneAndUpdate({ houseId }, { $inc: { seq: 1 } }, { new: true, upsert: true })
-    .select('seq')
-    .lean<ICounter | null>();
-
-  const seq = counter?.seq ?? 1;
+  const n = await nextSeq('room');
 
   const house = await House.findById(houseId).select('code address').lean<{ code?: string; address?: string } | null>();
   const houseCode = house?.code?.toUpperCase() || shortFromAddress(house?.address);
 
-  const seqStr = String(seq).padStart(3, '0');
+  const seqStr = String(n).padStart(3, '0');
   return `R_${seqStr}_${houseCode}`;
 }

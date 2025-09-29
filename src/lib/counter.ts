@@ -1,4 +1,4 @@
-import Counter from 'models/CounterBase';
+import Counter from 'models/Counter';
 
 /**
  * Lấy số thứ tự tiếp theo cho 1 key

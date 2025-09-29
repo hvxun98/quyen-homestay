@@ -27,6 +27,7 @@ import dayjs, { Dayjs } from 'dayjs';
 // services
 import { createBooking, updateBooking } from 'services/bookings';
 import { BookingProps } from 'types/booking';
+import { toVND } from 'utils/format';
 
 // types
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -312,7 +313,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
                 fullWidth
                 name="price"
                 label="Giá"
-                value={formik.values.price}
+                value={formik.values.price ? toVND(formik.values.price) : ''} // hiển thị 1.000.000
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 error={err('price')}

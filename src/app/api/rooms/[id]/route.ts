@@ -35,11 +35,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     // Nếu đổi code/houseId → kiểm tra trùng
     if (update.houseId || update.code) {
-      const current = await Room.findById(params.id).lean();
+      const current = (await Room.findById(params.id).lean()) as any;
       if (!current) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
-      const houseId = update.houseId ?? String(current.houseId);
-      const code = update.code ?? current.code;
+      const houseId = update.houseId ?? String(current?.houseId);
+      const code = update.code ?? current?.code;
       const dup = await Room.findOne({ _id: { $ne: params.id }, houseId, code }).lean();
       if (dup) {
         return NextResponse.json({ error: 'Room code already exists in this house' }, { status: 409 });

@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
     // thử tối đa 3 lần để tránh race hiếm
     for (let i = 0; i < 3; i++) {
       const code = await nextRoomCode(houseId);
+      console.log('code', code);
+
       const codeNorm = code.toUpperCase();
 
       const dup = await Room.findOne({ houseId, codeNorm }).lean();

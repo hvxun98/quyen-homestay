@@ -278,7 +278,10 @@ export default function Orders() {
               <Button
                 color="primary"
                 variant="contained"
-                onClick={() => setOpenAction(true)}
+                onClick={() => {
+                  setOpenAction(true);
+                  setEditingBooking(undefined);
+                }}
                 startIcon={<Add />}
                 disabled={!formik.values.houseId}
               >
