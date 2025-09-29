@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Grid, Button, MenuItem, Select, FormControl, InputLabel, Typography, Box, Alert } from '@mui/material';
 import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useFormik } from 'formik';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import MainCard from 'components/MainCard';
 import HouseItem from 'components/rooms/HouseItem';
 import { getHouses } from 'services/houses';
 import { checkAvailableRooms } from 'services/rooms';
+import Empty from 'components/Empty';
 
 type House = {
   _id: string;
@@ -23,12 +24,18 @@ type AvailableRoom = {
   codeNorm?: string;
   name: string;
   type: 'Standard' | 'VIP';
-  status: 'available' | 'occupied' | 'maintenance' | 'inactive';
+  status: 'available' | 'booked' | 'occupied' | 'maintenance';
+};
+
+type DataDisplay = {
+  house: House;
+  rooms: AvailableRoom[];
 };
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
-const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]; // thêm 40'
+const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
+// Kết hợp ngày + giờ/phút thành ISO
 function combineToISO(date: Dayjs | null, hour: number, minute: number) {
   if (!date) return null;
   const d = date.toDate();
@@ -41,7 +48,7 @@ export default function CheckRoomForm() {
   const [loadingHouses, setLoadingHouses] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<AvailableRoom[]>([]);
+  const [dataDisplay, setDataDisplay] = useState<DataDisplay[]>([]);
 
   // load dropdown cơ sở
   useEffect(() => {
@@ -55,6 +62,7 @@ export default function CheckRoomForm() {
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e: any) {
+        // Không hiển thị alert ở đây để tránh “ồn”; người dùng vẫn có thể thao tác tiếp
       } finally {
         setLoadingHouses(false);
       }
@@ -66,7 +74,7 @@ export default function CheckRoomForm() {
 
   const formik = useFormik({
     initialValues: {
-      facility: '', // houseId
+      facility: '', // houseId (tùy chọn)
       checkinHour: 0,
       checkinMinute: 0,
       checkinDate: null as Dayjs | null,
@@ -74,59 +82,74 @@ export default function CheckRoomForm() {
       checkoutMinute: 0,
       checkoutDate: null as Dayjs | null
     },
+    validate: (values) => {
+      const errors: Record<string, string> = {};
+      if (!values.checkinDate) {
+        errors.checkinDate = 'Vui lòng chọn ngày nhận phòng.';
+      }
+      if (!values.checkoutDate) {
+        errors.checkoutDate = 'Vui lòng chọn ngày trả phòng.';
+      }
+      if (values.checkinDate && values.checkoutDate) {
+        const ci = dayjs(values.checkinDate).hour(values.checkinHour).minute(values.checkinMinute).second(0).millisecond(0);
+        const co = dayjs(values.checkoutDate).hour(values.checkoutHour).minute(values.checkoutMinute).second(0).millisecond(0);
+        if (!ci.isValid() || !co.isValid()) {
+          errors.checkoutDate = 'Định dạng ngày/giờ không hợp lệ.';
+        } else if (!co.isAfter(ci)) {
+          errors.checkoutDate = 'Thời gian trả phòng phải sau thời gian nhận phòng.';
+        }
+      }
+      return errors;
+    },
     onSubmit: async (values) => {
       setErrorMsg(null);
-      setRooms([]);
+      setDataDisplay([]);
       try {
-        if (!values.facility) {
-          setErrorMsg('Vui lòng chọn cơ sở.');
-          return;
-        }
-        const checkInISO = combineToISO(values.checkinDate, values.checkinHour, values.checkinMinute);
-        const checkOutISO = combineToISO(values.checkoutDate, values.checkoutHour, values.checkoutMinute);
-        if (!checkInISO || !checkOutISO) {
-          setErrorMsg('Vui lòng chọn đầy đủ ngày/giờ nhận phòng và trả phòng.');
-          return;
-        }
+        // Chỉ validate checkin/checkout bằng formik → không kiểm tra facility tại đây
+        const checkInISO = combineToISO(values.checkinDate, values.checkinHour, values.checkinMinute)!;
+        const checkOutISO = combineToISO(values.checkoutDate, values.checkoutHour, values.checkoutMinute)!;
 
         setSubmitLoading(true);
-        const res = await checkAvailableRooms({
-          houseId: values.facility,
-          checkIn: checkInISO,
-          checkOut: checkOutISO
-        });
 
-        setRooms(res.data || []);
+        // houseId là tùy chọn: chỉ truyền khi có
+        const payload: any = { checkIn: checkInISO, checkOut: checkOutISO };
+        if (values.facility) payload.houseId = values.facility;
+
+        const res = await checkAvailableRooms(payload);
+
+        // Lỗi hệ thống/API
+        if (!res?.ok) {
+          setErrorMsg(res?.error || 'Lỗi hệ thống. Vui lòng thử lại sau.');
+          return;
+        }
+
+        setDataDisplay(res.data || []);
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e: any) {
+        setErrorMsg('Không kiểm tra được phòng trống.');
       } finally {
         setSubmitLoading(false);
       }
     }
   });
 
-  // dữ liệu render cho HouseItem
-  const selectedHouse = useMemo(() => houses.find((h) => h._id === formik.values.facility), [houses, formik.values.facility]);
-  const totalRooms = rooms.length;
-  const roomCards = rooms.map((r) => ({
-    name: r.name || r.code,
-    status: r.status === 'available' ? 1 : 0 // HouseItem đang dùng { name, status } (1 = available)
-  }));
+  // Gom lỗi formik để hiển thị gọn
+  const validationMessages = [formik.errors.checkinDate, formik.errors.checkoutDate].filter(Boolean) as string[];
 
   return (
     <Box sx={{ mt: 2 }}>
       <MainCard>
         <form onSubmit={formik.handleSubmit}>
           <Box>
-            {/* Cơ sở */}
+            {/* Cơ sở (tùy chọn) */}
             <Grid item xs={12}>
               <FormControl sx={{ width: 360 }} disabled={loadingHouses}>
-                <InputLabel>Chọn cơ sở</InputLabel>
-                <Select name="facility" label="Chọn cơ sở" value={formik.values.facility} onChange={formik.handleChange}>
-                  <MenuItem value="">-- Chọn cơ sở --</MenuItem>
+                <InputLabel>Chọn cơ sở (tùy chọn)</InputLabel>
+                <Select name="facility" label="Chọn cơ sở (tùy chọn)" value={formik.values.facility} onChange={formik.handleChange}>
+                  <MenuItem value={''}>-- Tất cả cơ sở --</MenuItem>
                   {houses.map((h) => (
                     <MenuItem key={h._id} value={h._id}>
-                      {h.address || h.code}
+                      {h.code || h.address}
                     </MenuItem>
                   ))}
                 </Select>
@@ -209,13 +232,25 @@ export default function CheckRoomForm() {
               </Grid>
             </Grid>
 
-            {/* Button */}
+            {/* Nút kiểm tra */}
             <Grid item xs={12} sx={{ mt: 2 }}>
               <Button type="submit" variant="contained" disabled={submitLoading}>
                 {submitLoading ? 'Đang kiểm tra…' : 'Kiểm tra'}
               </Button>
             </Grid>
 
+            {/* Lỗi validate từ Formik */}
+            {validationMessages.length > 0 && (
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Alert severity="warning">
+                  {validationMessages.map((m, i) => (
+                    <div key={i}>{m}</div>
+                  ))}
+                </Alert>
+              </Grid>
+            )}
+
+            {/* Lỗi hệ thống/API */}
             {errorMsg && (
               <Grid item xs={12} sx={{ mt: 2 }}>
                 <Alert severity="error">{errorMsg}</Alert>
@@ -229,15 +264,20 @@ export default function CheckRoomForm() {
         Danh sách phòng trống
       </Typography>
 
-      {/* Render theo cơ sở đã chọn */}
-      {selectedHouse && (
-        <HouseItem
-          name={selectedHouse.address || selectedHouse.code}
-          totalRooms={totalRooms}
-          showMore={false}
-          rooms={roomCards}
-          type="info"
-        />
+      {/* Nếu có chọn cơ sở → hiển thị tên cơ sở, nếu không → “Tất cả cơ sở” */}
+      {dataDisplay?.length > 0 ? (
+        dataDisplay.map((data, i) => (
+          <HouseItem
+            key={i}
+            name={data?.house?.code || data?.house?.address || 'Không tên'}
+            totalRooms={data?.rooms?.length || 0}
+            showMore={false}
+            rooms={data?.rooms || []}
+            type="info"
+          />
+        ))
+      ) : (
+        <Empty />
       )}
     </Box>
   );

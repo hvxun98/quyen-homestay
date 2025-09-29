@@ -1,5 +1,5 @@
 // src/components/OrderAction.tsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -114,9 +114,9 @@ function buildInitialValues(booking?: Props['booking']) {
 
 const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defaultRoomId, booking, roomGroups }) => {
   // formik
-  const initialValues = buildInitialValues(booking);
 
-  console.log('booking', booking);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialValues = useMemo(() => buildInitialValues(booking), [booking?.id, open]);
 
   const formik = useFormik({
     enableReinitialize: true,

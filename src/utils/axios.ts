@@ -124,15 +124,15 @@ axiosServices.interceptors.response.use(
 export default axiosServices;
 
 /** Helpers */
-export const fetcherPost = async <T = any>(url: string, body?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const fetcherPost = async <T = any>(url: string, body?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T> | any> => {
   return await axiosServices.post<T>(url, body, config);
 };
-export const fetcherPut = async <T = any>(url: string, body?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const fetcherPut = async <T = any>(url: string, body?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T> | any> => {
   return await axiosServices.put<T>(url, body, config);
 };
-export const fetcher = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+export const fetcher = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<T | any> => {
   return await axiosServices.get(url, config);
 };
-export const fetcherDelete = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+export const fetcherDelete = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T> | any> => {
   return await axiosServices.delete<T>(url, config);
 };

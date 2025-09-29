@@ -1,5 +1,6 @@
 import { Box, Grid, Typography } from '@mui/material';
 import RoomCard from 'components/cards/statistics/RoomCard';
+import Empty from 'components/Empty';
 import React from 'react';
 import { ColorProps } from 'types/extended';
 
@@ -19,11 +20,15 @@ function HouseItem({ name, totalRooms, type, showMore, rooms }: HouseItemProps) 
       </Typography>
 
       <Grid container spacing={2} sx={{ pt: 2 }}>
-        {rooms.map((item: any, i: number) => (
-          <Grid item xs={3} key={i}>
-            <RoomCard title={`Phòng ${i}`} color={type} showMore={showMore} />
-          </Grid>
-        ))}
+        {rooms?.length > 0 ? (
+          rooms.map((item: any, i: number) => (
+            <Grid item xs={3} key={i}>
+              <RoomCard title={item?.name} color={type} showMore={showMore} />
+            </Grid>
+          ))
+        ) : (
+          <Empty />
+        )}
       </Grid>
     </Box>
   );

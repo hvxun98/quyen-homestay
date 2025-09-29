@@ -7,11 +7,11 @@ export interface ICounter {
   seq: number;
 }
 
-const CounterSchema = new Schema<ICounter>({
+const CounterRoomSchema = new Schema<ICounter>({
   houseId: { type: Schema.Types.ObjectId, ref: 'House', required: true, unique: true, index: true },
   seq: { type: Number, required: true, default: 0 }
 });
 
-export const Counter: Model<ICounter> = (models.Counter as Model<ICounter>) || model<ICounter>('Counter', CounterSchema);
+export const Counter: Model<ICounter> = (models.Counter as Model<ICounter>) || model<ICounter>('CounterRoom', CounterRoomSchema);
 
 export default Counter;
