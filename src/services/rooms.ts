@@ -29,3 +29,14 @@ export const getRoomOptions = (houseId?: string) => {
 export const checkAvailableRooms = async (payload: AvailabilityPayload) => {
   return await fetcherPost('/api/rooms/available', payload);
 };
+
+// Lấy danh sách phòng theo trạng thái
+export const getRoomsByStatus = async (status: string, houseIds: string[] = []) => {
+  const houseIdsParam = houseIds.length ? `&houseIds=${houseIds.join(',')}` : '';
+  return await fetcher(`/api/rooms/room-map?status=${status}${houseIdsParam}`);
+};
+
+// Lấy thông tin thống kê phòng (total, available, booked, etc.)
+export const getRoomStats = async () => {
+  return await fetcher('/api/rooms/room-stats');
+};

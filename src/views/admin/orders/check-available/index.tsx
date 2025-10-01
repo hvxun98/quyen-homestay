@@ -24,7 +24,7 @@ type AvailableRoom = {
   codeNorm?: string;
   name: string;
   type: 'Standard' | 'VIP';
-  status: 'available' | 'booked' | 'occupied' | 'maintenance';
+  status: 'available' | 'booked' | 'occupied' | 'dirty';
 };
 
 type DataDisplay = {

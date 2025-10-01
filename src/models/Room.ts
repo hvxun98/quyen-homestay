@@ -1,6 +1,6 @@
 import { Schema, model, models, Types } from 'mongoose';
 
-export type RoomStatus = 'available' | 'booked' | 'occupied' | 'maintenance';
+export type RoomStatus = 'available' | 'booked' | 'occupied' | 'dirty';
 
 interface IRoom {
   _id: Types.ObjectId;
@@ -21,9 +21,9 @@ const RoomSchema = new Schema<IRoom>(
     codeNorm: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ['Standard', 'VIP'], required: true },
-    status: { type: String, enum: ['available', 'booked', 'occupied', 'maintenance'], default: 'available' }
+    status: { type: String, enum: ['available', 'booked', 'occupied', 'dirty'], default: 'available' }
   },
-  { timestamps: true }
+  { timestamps: true, strict: true }
 );
 
 // Unique trong phạm vi 1 nhà
@@ -31,7 +31,7 @@ RoomSchema.index({ houseId: 1, codeNorm: 1 }, { unique: true });
 
 // Phòng khi update code thủ công (nếu có), vẫn đồng bộ codeNorm
 RoomSchema.pre('validate', function (next) {
-  if (this.code) this.codeNorm = this.code.trim().toUpperCase();
+  if (this.code) this.codeNorm = this.code.trim().replace(/\s+/g, '_').toUpperCase();
   next();
 });
 

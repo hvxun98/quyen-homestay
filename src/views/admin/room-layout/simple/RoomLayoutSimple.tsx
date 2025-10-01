@@ -2,8 +2,9 @@
 import { Box, Stack, Tab, Tabs } from '@mui/material';
 import MainCard from 'components/MainCard';
 import { Broom } from 'iconsax-react';
-import React, { ReactNode, SyntheticEvent, useState } from 'react';
+import React, { ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import HouseItem from '../../../../components/rooms/HouseItem';
+import { getRoomStats, getRoomsByStatus } from 'services/rooms';
 
 interface TabPanelProps {
   children?: ReactNode;
@@ -13,7 +14,6 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
     <div role="tabpanel" hidden={value !== index} id={`simple-tabpanel-${index}`} aria-labelledby={`simple-tab-${index}`} {...other}>
       {value === index && <Box>{children}</Box>}
@@ -30,10 +30,60 @@ function a11yProps(index: number) {
 
 function RoomLayoutSimple() {
   const [value, setValue] = useState(0);
+  const [roomStats, setRoomStats] = useState({
+    total: 0,
+    available: 0,
+    booked: 0,
+    occupied: 0,
+    dirty: 0
+  });
+  const [roomData, setRoomData] = useState({
+    availableRooms: [],
+    bookedRooms: [],
+    occupiedRooms: [],
+    dirtyRooms: []
+  });
 
   const handleChange = (event: SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
+
+  const fetchRoomStats = async () => {
+    try {
+      const data = await getRoomStats(); // Gọi API thống kê phòng
+      setRoomStats(data);
+    } catch (error) {
+      console.error('Error fetching room stats', error);
+    }
+  };
+
+  const fetchRooms = async (status: string) => {
+    try {
+      const data = await getRoomsByStatus(status); // Gọi API lấy danh sách phòng theo trạng thái
+      if (status === 'available') {
+        setRoomData((prev) => ({ ...prev, availableRooms: data.houses }));
+      } else if (status === 'booked') {
+        setRoomData((prev) => ({ ...prev, bookedRooms: data.houses }));
+      } else if (status === 'occupied') {
+        setRoomData((prev) => ({ ...prev, occupiedRooms: data.houses }));
+      } else if (status === 'dirty') {
+        setRoomData((prev) => ({ ...prev, dirtyRooms: data.houses }));
+      }
+    } catch (error) {
+      console.error('Error fetching rooms', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoomStats(); // Lấy thống kê phòng
+    fetchRooms('available'); // Lấy danh sách phòng trống khi lần đầu render
+  }, []);
+
+  useEffect(() => {
+    // Fetch data khi chuyển tab
+    const statusMap = ['available', 'booked', 'occupied', 'dirty'];
+    fetchRooms(statusMap[value]);
+  }, [value]);
 
   return (
     <Box sx={{ mt: 2 }}>
@@ -41,13 +91,13 @@ function RoomLayoutSimple() {
         <Box sx={{ width: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={value} onChange={handleChange} aria-label="basic tabs example" sx={{ px: 3 }}>
-              <Tab label={`Trống (${0})`} {...a11yProps(0)} />
-              <Tab label={`Đã đặt (${0})`} {...a11yProps(1)} />
-              <Tab label={`Đang ở (${0})`} {...a11yProps(2)} />
+              <Tab label={`Trống (${roomStats?.available})`} {...a11yProps(0)} />
+              <Tab label={`Đã đặt (${roomStats?.booked})`} {...a11yProps(1)} />
+              <Tab label={`Đang ở (${roomStats?.occupied})`} {...a11yProps(2)} />
               <Tab
                 label={
                   <Stack alignItems="center" flexDirection="row" gap={1}>
-                    {`Bẩn (${0})`} <Broom size="16" />
+                    {`Bẩn (${roomStats?.dirty})`} <Broom size="16" />
                   </Stack>
                 }
                 {...a11yProps(3)}
@@ -56,56 +106,24 @@ function RoomLayoutSimple() {
           </Box>
           <Box sx={{ px: 3, pb: 3 }}>
             <TabPanel value={value} index={0}>
-              <HouseItem
-                name="690 Lạc Long Quân"
-                totalRooms={4}
-                rooms={[
-                  {
-                    name: 'Std 201 LLQ',
-                    status: 1
-                  }
-                ]}
-                type="success"
-              />
+              {roomData?.availableRooms?.map((house: any) => (
+                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="success" />
+              ))}
             </TabPanel>
             <TabPanel value={value} index={1}>
-              <HouseItem
-                name="880 Bạch Đằng"
-                totalRooms={4}
-                rooms={[
-                  {
-                    name: 'Std 201 LLQ',
-                    status: 1
-                  }
-                ]}
-                type="info"
-              />
+              {roomData?.bookedRooms?.map((house: any) => (
+                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="info" />
+              ))}
             </TabPanel>
             <TabPanel value={value} index={2}>
-              <HouseItem
-                name="880 Bạch Đằng"
-                totalRooms={4}
-                rooms={[
-                  {
-                    name: 'Std 201 LLQ',
-                    status: 1
-                  }
-                ]}
-                type="error"
-              />
+              {roomData?.occupiedRooms?.map((house: any) => (
+                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="error" />
+              ))}
             </TabPanel>
             <TabPanel value={value} index={3}>
-              <HouseItem
-                name="880 Bạch Đằng"
-                totalRooms={4}
-                rooms={[
-                  {
-                    name: 'Std 201 LLQ',
-                    status: 1
-                  }
-                ]}
-                type="secondary"
-              />
+              {roomData?.dirtyRooms?.map((house: any) => (
+                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="secondary" />
+              ))}
             </TabPanel>
           </Box>
         </Box>
