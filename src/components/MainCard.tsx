@@ -106,7 +106,7 @@ function MainCard(
         ...sx
       }}
     >
-      {loading ? (
+      {loading && (
         <Box
           sx={{
             position: 'absolute',
@@ -118,32 +118,25 @@ function MainCard(
         >
           <CircularProgress />
         </Box>
-      ) : (
+      )}
+      {/* card header and action */}
+      {!darkTitle && title && (
+        <CardHeader sx={headerSX} titleTypographyProps={{ variant: 'subtitle1' }} title={title} action={secondary} subheader={subheader} />
+      )}
+      {darkTitle && title && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
+
+      {/* content & header divider */}
+      {title && divider && <Divider />}
+
+      {/* card content */}
+      {content && <CardContent sx={contentSX}>{children}</CardContent>}
+      {!content && children}
+
+      {/* card footer - clipboard & highlighter  */}
+      {codeString && (
         <>
-          {' '}
-          {/* card header and action */}
-          {!darkTitle && title && (
-            <CardHeader
-              sx={headerSX}
-              titleTypographyProps={{ variant: 'subtitle1' }}
-              title={title}
-              action={secondary}
-              subheader={subheader}
-            />
-          )}
-          {darkTitle && title && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
-          {/* content & header divider */}
-          {title && divider && <Divider />}
-          {/* card content */}
-          {content && <CardContent sx={contentSX}>{children}</CardContent>}
-          {!content && children}
-          {/* card footer - clipboard & highlighter  */}
-          {codeString && (
-            <>
-              <Divider sx={{ borderStyle: 'dashed' }} />
-              <Highlighter codeString={codeString} codeHighlight={codeHighlight} />
-            </>
-          )}
+          <Divider sx={{ borderStyle: 'dashed' }} />
+          <Highlighter codeString={codeString} codeHighlight={codeHighlight} />
         </>
       )}
     </Card>
