@@ -16,6 +16,7 @@ import useConfig from 'hooks/useConfig';
 
 // types
 import { KeyedObject } from 'types/root';
+import { Box, CircularProgress } from '@mui/material';
 
 // header style
 const headerSX = { p: 2.5, '& .MuiCardHeader-action': { m: '0px auto', alignSelf: 'center' } };
@@ -38,6 +39,7 @@ export interface MainCardProps extends KeyedObject {
   codeHighlight?: boolean;
   codeString?: string;
   modal?: boolean;
+  loading?: boolean;
 }
 
 // ==============================|| CUSTOM - MAIN CARD ||============================== //
@@ -60,6 +62,7 @@ function MainCard(
     codeHighlight = false,
     codeString,
     modal = false,
+    loading = false,
     ...others
   }: MainCardProps,
   ref: Ref<HTMLDivElement>
@@ -103,24 +106,44 @@ function MainCard(
         ...sx
       }}
     >
-      {/* card header and action */}
-      {!darkTitle && title && (
-        <CardHeader sx={headerSX} titleTypographyProps={{ variant: 'subtitle1' }} title={title} action={secondary} subheader={subheader} />
-      )}
-      {darkTitle && title && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
-
-      {/* content & header divider */}
-      {title && divider && <Divider />}
-
-      {/* card content */}
-      {content && <CardContent sx={contentSX}>{children}</CardContent>}
-      {!content && children}
-
-      {/* card footer - clipboard & highlighter  */}
-      {codeString && (
+      {loading ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
         <>
-          <Divider sx={{ borderStyle: 'dashed' }} />
-          <Highlighter codeString={codeString} codeHighlight={codeHighlight} />
+          {' '}
+          {/* card header and action */}
+          {!darkTitle && title && (
+            <CardHeader
+              sx={headerSX}
+              titleTypographyProps={{ variant: 'subtitle1' }}
+              title={title}
+              action={secondary}
+              subheader={subheader}
+            />
+          )}
+          {darkTitle && title && <CardHeader sx={headerSX} title={<Typography variant="h4">{title}</Typography>} action={secondary} />}
+          {/* content & header divider */}
+          {title && divider && <Divider />}
+          {/* card content */}
+          {content && <CardContent sx={contentSX}>{children}</CardContent>}
+          {!content && children}
+          {/* card footer - clipboard & highlighter  */}
+          {codeString && (
+            <>
+              <Divider sx={{ borderStyle: 'dashed' }} />
+              <Highlighter codeString={codeString} codeHighlight={codeHighlight} />
+            </>
+          )}
         </>
       )}
     </Card>

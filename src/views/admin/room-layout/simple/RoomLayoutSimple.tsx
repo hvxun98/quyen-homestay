@@ -4,7 +4,8 @@ import MainCard from 'components/MainCard';
 import { Broom } from 'iconsax-react';
 import React, { ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import HouseItem from '../../../../components/rooms/HouseItem';
-import { getRoomStats, getRoomsByStatus } from 'services/rooms';
+import { getRoomStats, getRoomsByStatus, updateRoomStatus } from 'services/rooms';
+import Empty from 'components/Empty';
 
 interface TabPanelProps {
   children?: ReactNode;
@@ -43,6 +44,7 @@ function RoomLayoutSimple() {
     occupiedRooms: [],
     dirtyRooms: []
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (event: SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -59,6 +61,7 @@ function RoomLayoutSimple() {
 
   const fetchRooms = async (status: string) => {
     try {
+      setLoading(true);
       const data = await getRoomsByStatus(status); // Gọi API lấy danh sách phòng theo trạng thái
       if (status === 'available') {
         setRoomData((prev) => ({ ...prev, availableRooms: data.houses }));
@@ -71,6 +74,8 @@ function RoomLayoutSimple() {
       }
     } catch (error) {
       console.error('Error fetching rooms', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,9 +90,23 @@ function RoomLayoutSimple() {
     fetchRooms(statusMap[value]);
   }, [value]);
 
+  const handleAction = async (roomId: string, currentStatus: string) => {
+    try {
+      setLoading(true);
+      await updateRoomStatus(roomId, currentStatus);
+      // Sau khi thay đổi trạng thái, gọi lại API để làm mới dữ liệu
+      fetchRooms(value === 0 ? 'available' : value === 1 ? 'booked' : value === 2 ? 'occupied' : 'dirty');
+      fetchRoomStats();
+    } catch (error) {
+      console.error('Error changing room status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
-      <MainCard content={false}>
+      <MainCard content={false} loading={loading} sx={{ minHeight: '300px' }}>
         <Box sx={{ width: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={value} onChange={handleChange} aria-label="basic tabs example" sx={{ px: 3 }}>
@@ -106,24 +125,79 @@ function RoomLayoutSimple() {
           </Box>
           <Box sx={{ px: 3, pb: 3 }}>
             <TabPanel value={value} index={0}>
-              {roomData?.availableRooms?.map((house: any) => (
-                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="success" />
-              ))}
+              {roomData?.availableRooms?.length === 0 ? (
+                <Box sx={{ textAlign: 'center', color: 'gray', paddingTop: 2 }}>
+                  <Empty />
+                </Box>
+              ) : (
+                roomData?.availableRooms?.map((house: any) => (
+                  <HouseItem
+                    key={house?.houseId}
+                    name={house?.houseCode}
+                    totalRooms={house?.count}
+                    rooms={house?.rooms}
+                    type="success"
+                    onAction={handleAction}
+                  />
+                ))
+              )}
             </TabPanel>
             <TabPanel value={value} index={1}>
-              {roomData?.bookedRooms?.map((house: any) => (
-                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="info" />
-              ))}
+              {roomData?.bookedRooms?.length === 0 ? (
+                <Box sx={{ textAlign: 'center', color: 'gray', paddingTop: 2 }}>
+                  {' '}
+                  <Empty />
+                </Box>
+              ) : (
+                roomData?.bookedRooms?.map((house: any) => (
+                  <HouseItem
+                    key={house?.houseId}
+                    name={house?.houseCode}
+                    totalRooms={house?.count}
+                    rooms={house?.rooms}
+                    type="info"
+                    onAction={handleAction}
+                  />
+                ))
+              )}
             </TabPanel>
             <TabPanel value={value} index={2}>
-              {roomData?.occupiedRooms?.map((house: any) => (
-                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="error" />
-              ))}
+              {roomData?.occupiedRooms?.length === 0 ? (
+                <Box sx={{ textAlign: 'center', color: 'gray', paddingTop: 2 }}>
+                  {' '}
+                  <Empty />
+                </Box>
+              ) : (
+                roomData?.occupiedRooms?.map((house: any) => (
+                  <HouseItem
+                    key={house?.houseId}
+                    name={house?.houseCode}
+                    totalRooms={house?.count}
+                    rooms={house?.rooms}
+                    type="error"
+                    onAction={handleAction}
+                  />
+                ))
+              )}
             </TabPanel>
             <TabPanel value={value} index={3}>
-              {roomData?.dirtyRooms?.map((house: any) => (
-                <HouseItem key={house?.houseId} name={house?.houseCode} totalRooms={house?.count} rooms={house?.rooms} type="secondary" />
-              ))}
+              {roomData?.dirtyRooms?.length === 0 ? (
+                <Box sx={{ textAlign: 'center', color: 'gray', paddingTop: 2 }}>
+                  {' '}
+                  <Empty />
+                </Box>
+              ) : (
+                roomData?.dirtyRooms?.map((house: any) => (
+                  <HouseItem
+                    key={house?.houseId}
+                    name={house?.houseCode}
+                    totalRooms={house?.count}
+                    rooms={house?.rooms}
+                    type="secondary"
+                    onAction={handleAction}
+                  />
+                ))
+              )}
             </TabPanel>
           </Box>
         </Box>

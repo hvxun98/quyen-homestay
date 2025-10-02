@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const houseIdStr = String(body.houseId || '').trim();
   const name = String(body.name || '').trim();
   const type = String(body.type || '').trim();
-  const status = body.status ? String(body.status) : undefined;
+  const status = body.status && Array.isArray(body.status) ? body.status : ['available']; // Mảng trạng thái, mặc định là ['available']
 
   if (!houseIdStr || !name || !type) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: 'Failed to generate room code' }, { status: 500 });
   } catch (e: any) {
-    // 👇 GHI LOG CHI TIẾT để thấy nguyên nhân thật sự
+    // Ghi log chi tiết để thấy nguyên nhân
     console.error('Create room error:', {
       message: e?.message,
       stack: e?.stack,

@@ -136,3 +136,6 @@ export const fetcher = async <T = any>(url: string, config?: AxiosRequestConfig)
 export const fetcherDelete = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T> | any> => {
   return await axiosServices.delete<T>(url, config);
 };
+export const fetcherPatch = async <T = any>(url: string, body?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T> | any> => {
+  return await axiosServices.patch<T>(url, body, config);
+};

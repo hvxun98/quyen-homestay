@@ -9,7 +9,7 @@ interface IRoom {
   codeNorm: string;
   name: string;
   type: 'Standard' | 'VIP';
-  status?: RoomStatus;
+  status: RoomStatus[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -18,10 +18,10 @@ const RoomSchema = new Schema<IRoom>(
   {
     houseId: { type: Schema.Types.ObjectId, ref: 'House', required: true, index: true },
     code: { type: String, required: true, trim: true },
-    codeNorm: { type: String, required: true, trim: true },
+    codeNorm: { type: String, required: true, trim: true, uppercase: true, index: true },
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ['Standard', 'VIP'], required: true },
-    status: { type: String, enum: ['available', 'booked', 'occupied', 'dirty'], default: 'available' }
+    status: { type: [String], enum: ['available', 'booked', 'occupied', 'dirty'], default: ['available'] } // Mảng trạng thái
   },
   { timestamps: true, strict: true }
 );

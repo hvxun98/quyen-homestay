@@ -1,4 +1,3 @@
-// app/api/room-map/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Room from 'models/Room';
 import House from 'models/House';

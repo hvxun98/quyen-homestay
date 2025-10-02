@@ -10,9 +10,10 @@ interface HouseItemProps {
   rooms: any;
   type?: ColorProps;
   showMore?: boolean;
+  onAction?: (roomId: string, status: string) => void;
 }
 
-function HouseItem({ name, totalRooms, type, showMore, rooms }: HouseItemProps) {
+function HouseItem({ name, totalRooms, type, showMore, rooms, onAction = () => {} }: HouseItemProps) {
   return (
     <Box sx={{ pt: 3 }}>
       <Typography variant="h5">
@@ -23,7 +24,13 @@ function HouseItem({ name, totalRooms, type, showMore, rooms }: HouseItemProps) 
         {rooms?.length > 0 ? (
           rooms.map((item: any, i: number) => (
             <Grid item xs={3} key={i}>
-              <RoomCard title={item?.name} color={type} showMore={showMore} />
+              <RoomCard
+                title={item?.name}
+                color={type}
+                showMore={showMore}
+                onAction={(status) => onAction(item?._id, status)}
+                isDirty={item?.status?.includes('dirty')}
+              />
             </Grid>
           ))
         ) : (

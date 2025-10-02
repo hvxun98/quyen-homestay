@@ -40,3 +40,7 @@ export const getRoomsByStatus = async (status: string, houseIds: string[] = []) 
 export const getRoomStats = async () => {
   return await fetcher('/api/rooms/room-stats');
 };
+
+export const updateRoomStatus = async (roomId: string, status: string) => {
+  return await fetcherPut(`/api/rooms/${roomId}/status`, { status });
+};

@@ -19,6 +19,7 @@ import MoreIcon from 'components/@extended/MoreIcon';
 
 // types
 import { ColorProps } from 'types/extended';
+import { Broom } from 'iconsax-react';
 
 interface Props {
   title: string;
@@ -27,12 +28,24 @@ interface Props {
   iconPrimary?: ReactNode;
   children?: any;
   color?: ColorProps;
+  isDirty?: boolean;
   showMore?: boolean;
+  onAction?: (value: string) => void;
 }
 
 // ==============================|| CHART WIDGET - Room CARD  ||============================== //
 
-export default function RoomCard({ title, count, percentage, color, iconPrimary, children, showMore = true }: Props) {
+export default function RoomCard({
+  title,
+  count,
+  percentage,
+  color,
+  iconPrimary,
+  children,
+  showMore = true,
+  isDirty = false,
+  onAction = () => {}
+}: Props) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -44,17 +57,46 @@ export default function RoomCard({ title, count, percentage, color, iconPrimary,
     setAnchorEl(null);
   };
 
+  const getColor = (color: ColorProps | undefined) => {
+    switch (color) {
+      case 'success':
+        return 'linear-gradient(145deg, #56ab2f 0%, #a8e063 30%)'; // Gradient xanh lá
+      case 'info':
+        return 'linear-gradient(145deg, #00c6ff 0%, #79b3faff 30%)'; // Gradient xanh dương
+      case 'error':
+        return 'linear-gradient(145deg, #f7797d 0%, #f2a4b8 30%)'; // Gradient đỏ
+      case 'secondary':
+        return 'linear-gradient(145deg, #c2c2c2 0%, #e6e6e6 100%)'; // Gradient xám
+      default:
+        return '#ffffff'; // Mặc định nếu không có màu
+    }
+  };
+
   return (
-    <MainCard>
+    <MainCard
+      sx={{
+        background: getColor(color),
+        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.3)',
+        borderRadius: '12px',
+        padding: 2
+      }}
+    >
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Stack direction="row" alignItems="center" spacing={2}>
               <Avatar variant="rounded" color={color}>
-                {<BedroomChildIcon />}
+                {iconPrimary || <BedroomChildIcon />}
               </Avatar>
               <Typography variant="subtitle1">{title}</Typography>
             </Stack>
+            {isDirty ? (
+              <Box sx={{ flex: 1, marginLeft: 1 }}>
+                <Broom size="16" />
+              </Box>
+            ) : (
+              ''
+            )}
             {showMore && (
               <IconButton
                 color="secondary"
@@ -67,7 +109,6 @@ export default function RoomCard({ title, count, percentage, color, iconPrimary,
                 <MoreIcon />
               </IconButton>
             )}
-
             <Menu
               id="wallet-menu"
               anchorEl={anchorEl}
@@ -86,12 +127,30 @@ export default function RoomCard({ title, count, percentage, color, iconPrimary,
                 horizontal: 'right'
               }}
             >
-              <ListItemButton onClick={handleClose}>Phòng bẩn</ListItemButton>
+              {isDirty ? (
+                <ListItemButton
+                  onClick={() => {
+                    onAction('clean');
+                    handleClose();
+                  }}
+                >
+                  Làm sạch phòng
+                </ListItemButton>
+              ) : (
+                <ListItemButton
+                  onClick={() => {
+                    onAction('dirty');
+                    handleClose();
+                  }}
+                >
+                  Phòng bẩn
+                </ListItemButton>
+              )}
             </Menu>
           </Stack>
         </Grid>
         <Grid item xs={12}>
-          <MainCard content={false} border={false} sx={{ bgcolor: 'background.default' }}>
+          {/* <MainCard content={false} border={false}>
             <Box sx={{ p: 3, pb: 1.25 }}>
               <Grid container spacing={3}>
                 <Grid item xs={7}>
@@ -105,7 +164,7 @@ export default function RoomCard({ title, count, percentage, color, iconPrimary,
                 </Grid>
               </Grid>
             </Box>
-          </MainCard>
+          </MainCard> */}
         </Grid>
       </Grid>
     </MainCard>
