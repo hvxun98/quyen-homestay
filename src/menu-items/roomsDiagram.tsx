@@ -21,7 +21,7 @@ const roomsDiagram: NavItemType = {
   type: 'group',
   children: [
     {
-      id: 'time-line',
+      id: 'Sơ đồ phòng',
       title: <FormattedMessage id="Time line" defaultMessage="Time line" />,
       type: 'item',
       url: '/admin/room-layout/timeline',

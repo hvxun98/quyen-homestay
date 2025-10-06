@@ -33,3 +33,13 @@ export const getBookings = (params: {
 
   return fetcher(`/api/bookings?${qs.toString()}`);
 };
+
+export const getBookingTree = (params?: { from?: string; to?: string; status?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  if (params?.status) qs.set('status', params.status);
+
+  const url = qs.toString() ? `/api/bookings/bookings-tree?${qs.toString()}` : '/api/bookings/bookings-tree';
+  return fetcher(url);
+};

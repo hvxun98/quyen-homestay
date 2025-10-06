@@ -104,12 +104,14 @@ function buildInitialValues(booking?: Props['booking']) {
     checkOutDate: dayjs().add(1, 'day'),
     checkOutHour: 0,
     checkOutMinute: 0,
-    price: '' as any,
+    price: 0,
     source: 'Facebook ads',
     paymentStatus: 'full' as PayStatus,
     note: ''
   };
 }
+
+const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
 // ---------------------------------------------------------------------------
 
@@ -314,10 +316,16 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
                 name="price"
                 label="Giá"
                 value={formik.values.price ? toVND(formik.values.price) : ''} // hiển thị 1.000.000
-                onChange={formik.handleChange}
+                // onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 error={err('price')}
                 helperText={helper('price')}
+                onChange={(e) => {
+                  const raw = onlyDigits(e.target.value);
+                  formik.setFieldValue('price', raw);
+                  if (!formik.touched.price) formik.setFieldTouched('price', true, false);
+                }}
+                inputMode="numeric"
               />
             </Grid>
             <Grid item xs={6}>
