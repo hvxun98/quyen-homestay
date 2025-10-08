@@ -17,9 +17,14 @@ export async function GET(req: NextRequest) {
   if (status) bookingFilter.status = status;
   if (from || to) {
     const range: any = {};
-    if (from) range.$gte = new Date(from + 'T00:00:00');
-    if (to) range.$lte = new Date(to + 'T23:59:59');
-    bookingFilter.checkIn = range;
+    if (from) range.$lte = new Date(to + 'T23:59:59.999Z'); // kết thúc >= từ date
+    if (to) range.$gte = new Date(from + 'T00:00:00.000Z'); // bắt đầu <= tới date
+
+    bookingFilter.$or = [
+      { checkIn: range }, // checkIn nằm trong range
+      { checkOut: range }, // checkOut nằm trong range
+      { checkIn: { $lte: range.$lte }, checkOut: { $gte: range.$gte } } // bao phủ toàn bộ range
+    ];
   }
 
   // Lấy tất cả house
@@ -27,7 +32,13 @@ export async function GET(req: NextRequest) {
 
   // Lấy tất cả room theo house
   const rooms = await Room.find().lean();
-  const bookings = await Booking.find(bookingFilter).populate({ path: 'roomId', select: 'name code houseId' }).lean();
+  const bookings = (await Booking.find(bookingFilter).populate({ path: 'roomId', select: 'name code houseId' }).lean()).filter(
+    (b) => b.roomId
+  );
+
+  console.log('houses', houses);
+
+  console.log('bookings', bookings);
 
   // Gom dữ liệu theo house → room → order
   const data = houses.map((house) => {
@@ -35,7 +46,7 @@ export async function GET(req: NextRequest) {
       .filter((r) => String(r.houseId) === String(house._id))
       .map((room) => {
         const roomOrders = bookings
-          .filter((b) => String(b.roomId._id) === String(room._id))
+          .filter((b) => b.roomId && String(b.roomId._id) === String(room._id))
           .map((b) => ({
             orderCode: b.orderCode,
             customerName: b.customerName,
