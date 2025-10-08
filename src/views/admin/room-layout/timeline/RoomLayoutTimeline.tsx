@@ -1,93 +1,101 @@
 'use client';
-import React, { useState } from 'react';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import { parse, format, startOfWeek, getDay } from 'date-fns';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+import React, { useEffect, useState } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
+import interactionPlugin from '@fullcalendar/interaction';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import Tooltip from '@mui/material/Tooltip';
+import { getBookingTree } from 'services/bookings';
+import moment from 'moment';
+import './style.css';
+import viLocale from '@fullcalendar/core/locales/vi';
 
-const locales = {
-  'en-US': require('date-fns/locale/en-US')
-};
+type ResourceType = { id: string; title: string; houseCode: string };
 
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 0 }),
-  getDay,
-  locales
-});
+export default function RoomTimelineFullCalendar() {
+  const [resources, setResources] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
 
-const today = new Date();
-const year = today.getFullYear();
-const month = today.getMonth(); // 0-based
-const day = today.getDate();
+  const convertBookingTreeToFullCalendar = async () => {
+    const data = await getBookingTree({ from: moment().format('YYYY-MM-DD') });
+    const resources: ResourceType[] = [];
+    const events: any[] = [];
 
-const events = [
-  {
-    title: 'Sơn Nam',
-    start: new Date(2025, 9, 3, 12, 0),
-    end: new Date(2025, 9, 3, 14, 0)
-  },
-  {
-    title: 'Nguyễn Hoàng Đức',
-    start: new Date(2025, 9, 3, 18, 0),
-    end: new Date(2025, 9, 3, 19, 30)
-  },
-  {
-    title: 'T-Dương Văn Thành',
-    start: new Date(2025, 9, 3, 20, 0),
-    end: new Date(2025, 9, 3, 22, 0)
-  },
-  {
-    title: 'Nguyễn Văn A - Phòng 101',
-    start: new Date(year, month, day, 19, 0),
-    end: new Date(year, month, day, 20, 30)
-  },
-  {
-    title: 'Trần Thị B - Phòng 102',
-    start: new Date(year, month, day, 20, 0),
-    end: new Date(year, month, day, 21, 15)
-  },
-  {
-    title: 'Lê Văn C - Phòng 103',
-    start: new Date(year, month, day, 21, 30),
-    end: new Date(year, month, day, 22, 45)
-  },
-  {
-    title: 'Phạm Thị D - Phòng 104',
-    start: new Date(year, month, day, 22, 30),
-    end: new Date(year, month, day, 23, 59)
-  }
-  // Thêm các sự kiện khác ở đây
-];
+    data.data.forEach((house: any) => {
+      house.rooms.forEach((room: any) => {
+        resources.push({
+          id: room._id,
+          title: room.name || room.code,
+          houseCode: house.code
+        });
 
-const MyCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+        // nếu room.orders không rỗng, convert thành events
+        room.orders.forEach((order: any) => {
+          events.push({
+            id: order._id,
+            resourceId: room._id,
+            title: order.customerName,
+            start: order.checkIn,
+            end: order.checkOut,
+            color: '#2b88d8'
+          });
+        });
+      });
+    });
+
+    return { resources, events };
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { resources, events } = await convertBookingTreeToFullCalendar();
+      setResources(resources);
+      setEvents(events);
+    };
+    fetchData();
+  }, []);
+
+  // Custom render event with tooltip
+  const renderEventContent = (eventInfo: any) => {
+    const { event } = eventInfo;
+    const { extendedProps } = event;
+    return (
+      <Tooltip title={`Khách: ${event.title} | Mã: ${event.id} | Giá: ${extendedProps.price} | Trạng thái: ${extendedProps.status}`}>
+        <div style={{ padding: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.title}</div>
+      </Tooltip>
+    );
+  };
 
   return (
-    <div style={{ height: 700 }}>
-      <Calendar
-        localizer={localizer}
+    <div style={{ height: '85vh', padding: 12 }}>
+      <FullCalendar
+        plugins={[resourceTimelinePlugin, interactionPlugin, timeGridPlugin, dayGridPlugin]}
+        initialView="resourceTimelineDay"
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
+        }}
+        resourceGroupField="houseCode"
+        resources={resources}
         events={events}
-        startAccessor="start"
-        endAccessor="end"
-        views={['day', 'week', 'month']}
-        step={30} // Giờ phân chia mỗi 30 phút
-        timeslots={2} // Hiển thị thời gian theo 30 phút
-        defaultView="day" // Mặc định hiển thị view ngày
-        toolbar={true}
-        defaultDate={currentDate}
-        onNavigate={(date) => setCurrentDate(date)}
-        eventPropGetter={(event) => ({
-          style: {
-            backgroundColor: 'linear-gradient(145deg, #38ae67ff 0%, #fad179ff 30%)',
-            color: 'black',
-            borderRadius: '4px',
-            padding: '5px'
-          }
-        })}
+        locale={viLocale}
+        editable
+        selectable
+        eventContent={renderEventContent}
+        slotDuration="00:30:00"
+        slotLabelInterval="06:00"
+        resourceAreaWidth={250}
+        nowIndicator
+        eventOverlap={false}
+        height="80vh"
+        slotLabelFormat={{
+          hour: '2-digit', // 24h format
+          minute: '2-digit',
+          hour12: false // quan trọng để hiện 24h
+        }}
       />
     </div>
   );
-};
-
-export default MyCalendar;
+}
