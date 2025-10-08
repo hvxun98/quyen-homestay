@@ -36,10 +36,6 @@ export async function GET(req: NextRequest) {
     (b) => b.roomId
   );
 
-  console.log('houses', houses);
-
-  console.log('bookings', bookings);
-
   // Gom dữ liệu theo house → room → order
   const data = houses.map((house) => {
     const houseRooms = rooms

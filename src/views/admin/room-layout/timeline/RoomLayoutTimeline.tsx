@@ -17,6 +17,8 @@ export default function RoomTimelineFullCalendar() {
   const [resources, setResources] = useState<ResourceType[]>([]);
   const [events, setEvents] = useState<any[]>([]);
 
+  console.log('events', events);
+
   // Convert data API -> resources + events
   const convertBookingTreeToFullCalendar = (data: any) => {
     const resources: ResourceType[] = [];
@@ -90,15 +92,37 @@ export default function RoomTimelineFullCalendar() {
           center: 'title',
           right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
         }}
+        views={{
+          resourceTimelineWeek: {
+            type: 'resourceTimeline',
+            duration: { days: 7 },
+            slotDuration: { hours: 1 },
+            slotLabelInterval: { hours: 6 }, // nhãn mỗi 6 tiếng
+            slotLabelFormat: [
+              { weekday: 'short', day: '2-digit', month: '2-digit' }, // hàng trên: T2 07/10
+              { hour: '2-digit', minute: '2-digit', hour12: false } // hàng dưới: 00:00, 06:00...
+            ]
+          },
+          resourceTimelineDay: {
+            slotDuration: { hours: 1 },
+            slotLabelInterval: { hours: 2 },
+            slotLabelFormat: [{ hour: '2-digit', minute: '2-digit', hour12: false }]
+          }
+        }}
+        buttonText={{
+          resourceTimelineDay: 'Ngày',
+          resourceTimelineWeek: 'Tuần',
+          dayGridMonth: 'Tháng'
+        }}
         resourceGroupField="houseCode"
         resources={resources}
         events={events}
         locale={viLocale}
-        editable
+        editable={false}
         selectable
         eventContent={renderEventContent}
-        slotDuration="00:30:00"
-        slotLabelInterval="01:00"
+        slotDuration="1:00:00"
+        slotLabelInterval="06:00"
         slotLabelFormat={{
           hour: '2-digit',
           minute: '2-digit',
