@@ -43,3 +43,7 @@ export const getBookingTree = (params?: { from?: string; to?: string; status?: s
   const url = qs.toString() ? `/api/bookings/bookings-tree?${qs.toString()}` : '/api/bookings/bookings-tree';
   return fetcher(url);
 };
+
+export const getBookingDetail = async (id: string) => {
+  return await fetcher(`/api/bookings/${id}`);
+};

@@ -29,6 +29,35 @@ function combineLocal(dateStr: string | undefined | null, hour = 0, minute = 0) 
 
 type Status = 'pending' | 'success' | 'cancelled';
 
+/* ✅ NEW: GET /api/bookings/[id]
+-------------------------------------------------- */
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  await dbConnect();
+  const id = params.id;
+
+  try {
+    const booking = await Booking.findById(id)
+      .populate({
+        path: 'roomId',
+        select: 'name code houseId',
+        populate: {
+          path: 'houseId',
+          select: 'code name address'
+        }
+      })
+      .lean();
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(booking);
+  } catch (err: any) {
+    console.error('GET booking error:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect();
   const id = params.id;

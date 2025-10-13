@@ -1,9 +1,11 @@
 // src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { nextSeq } from 'lib/counter';
+import { authOptions } from 'utils/authOptions';
 
 // ---- Helpers ---------------------------------------------------------------
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -83,10 +85,8 @@ export async function GET(req: NextRequest) {
 
   const rows = items.map((b: any, idx: number) => {
     const obj = { ...b, id: String(b._id) };
-    // loại bỏ trường nội bộ của Mongo để trả về gọn hơn
     delete (obj as any)._id;
     delete (obj as any).__v;
-    // giữ thứ tự/stt nếu cần cho UI
     (obj as any).stt = (page - 1) * pageSize + idx + 1;
     return obj;
   });
@@ -120,6 +120,15 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   await dbConnect();
+
+  // ✅ Lấy user hiện tại từ session NextAuth
+  const session = await getServerSession(authOptions);
+
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json();
 
   const required = ['roomId', 'customerName', 'checkInDate', 'checkOutDate'] as const;
@@ -129,7 +138,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // tìm room để lấy houseId
   const room = await Room.findOne({ _id: body.roomId }).lean();
   if (!room) {
     return NextResponse.json({ error: 'Room not found' }, { status: 400 });
@@ -141,7 +149,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Thời gian checkout phải sau checkin' }, { status: 400 });
   }
 
-  // trùng lịch?
   const overlapping = await Booking.exists({
     roomId: body.roomId,
     status: { $ne: 'cancelled' },
@@ -152,11 +159,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Khoảng thời gian chồng chéo với đặt phòng hiện có' }, { status: 409 });
   }
 
-  // sinh mã đơn
   const n = await nextSeq('booking');
   const orderCode = `OD_${String(n).padStart(4, '0')}`;
 
-  // tạo đơn, lấy houseId từ room
+  // ✅ Gắn thêm createdBy vào document
   const doc = await Booking.create({
     orderCode,
     houseId: (room as any).houseId,
@@ -169,9 +175,9 @@ export async function POST(req: NextRequest) {
     status: 'pending' as OrderStatus,
     source: body.source ?? undefined,
     paymentStatus: (body.paymentStatus as PayStatus) ?? 'unpaid',
-    note: body.note ?? undefined
+    note: body.note ?? undefined,
+    createdBy: userEmail // 👈 thêm dòng này
   });
 
-  // trả về có virtuals
   return NextResponse.json(doc.toJSON({ virtuals: true }), { status: 201 });
 }

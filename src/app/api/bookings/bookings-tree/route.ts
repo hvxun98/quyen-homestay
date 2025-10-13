@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         const roomOrders = bookings
           .filter((b) => b.roomId && String(b.roomId._id) === String(room._id))
           .map((b) => ({
+            _id: b._id,
             orderCode: b.orderCode,
             customerName: b.customerName,
             checkIn: b.checkIn,

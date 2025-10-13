@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 export const objectToQueryString = (obj: any) => {
   const parts = [];
   for (const key in obj) {
@@ -10,3 +12,8 @@ export const objectToQueryString = (obj: any) => {
   }
   return parts.join('&');
 };
+
+export function splitToForm(dt: string | Date) {
+  const d = dayjs(dt);
+  return { date: d, hour: d.hour(), minute: d.minute() };
+}

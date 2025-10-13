@@ -27,7 +27,9 @@ import dayjs, { Dayjs } from 'dayjs';
 // services
 import { createBooking, updateBooking } from 'services/bookings';
 import { BookingProps } from 'types/booking';
-import { toVND } from 'utils/format';
+import { onlyDigits, toVND } from 'utils/format';
+import { splitToForm } from 'utils/function';
+import { hours, minutes } from 'constants/app';
 
 // types
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -44,9 +46,6 @@ type Props = {
   /** Nếu truyền booking => modal ở chế độ SỬA */
   booking?: BookingProps;
 };
-
-const hours = Array.from({ length: 24 }, (_, i) => i);
-const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 45, 50, 55];
 
 const validationSchema = Yup.object({
   roomId: Yup.string().required('Chọn phòng'),
@@ -66,11 +65,6 @@ const validationSchema = Yup.object({
 
 // ---- helpers ---------------------------------------------------------------
 const toYMD = (d: Dayjs | null) => (d ? d.format('YYYY-MM-DD') : '');
-
-function splitToForm(dt: string | Date) {
-  const d = dayjs(dt);
-  return { date: d, hour: d.hour(), minute: d.minute() };
-}
 
 function buildInitialValues(booking?: Props['booking']) {
   // nếu edit => bind từ booking
@@ -110,8 +104,6 @@ function buildInitialValues(booking?: Props['booking']) {
     note: ''
   };
 }
-
-const onlyDigits = (s: string) => s.replace(/\D/g, '');
 
 // ---------------------------------------------------------------------------
 
