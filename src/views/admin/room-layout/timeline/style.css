@@ -1,3 +1,12 @@
 .fc-license-message {
   display: none;
 }
+.fc-timeline-event,
+.fc-daygrid-event {
+  border-radius: 10px;
+  background-color: #4680ff !important;
+  border: none;
+  color: white;
+  padding: 10px;
+  cursor: pointer;
+}
