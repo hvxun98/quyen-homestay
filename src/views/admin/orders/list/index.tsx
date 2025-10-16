@@ -321,7 +321,6 @@ export default function Orders() {
           open={openAction}
           booking={editingBooking}
           onClose={() => setOpenAction(false)}
-          houseId={formik.values.houseId}
           roomGroups={roomGroups}
           onCreated={() => {
             setOpenAction(false);

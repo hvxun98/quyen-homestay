@@ -27,9 +27,9 @@ import dayjs, { Dayjs } from 'dayjs';
 // services
 import { createBooking, updateBooking } from 'services/bookings';
 import { BookingProps } from 'types/booking';
-import { onlyDigits, toVND } from 'utils/format';
+import { onlyDigits, toVND, toYMD } from 'utils/format';
 import { splitToForm } from 'utils/function';
-import { hours, minutes } from 'constants/app';
+import { hours, minutes, source } from 'constants/app';
 
 // types
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -38,7 +38,6 @@ type RoomGroup = { houseId: string; houseLabel: string; rooms: { _id: string; la
 type Props = {
   open: boolean;
   onClose: () => void;
-  houseId: string; // cơ sở đang chọn ở bảng ngoài
   onCreated?: () => void; // reload list sau khi submit
   defaultRoomId?: string;
   roomGroups: RoomGroup[]; // danh sách phòng theo từng cơ sở
@@ -64,7 +63,6 @@ const validationSchema = Yup.object({
 });
 
 // ---- helpers ---------------------------------------------------------------
-const toYMD = (d: Dayjs | null) => (d ? d.format('YYYY-MM-DD') : '');
 
 function buildInitialValues(booking?: Props['booking']) {
   // nếu edit => bind từ booking
@@ -107,7 +105,7 @@ function buildInitialValues(booking?: Props['booking']) {
 
 // ---------------------------------------------------------------------------
 
-const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defaultRoomId, booking, roomGroups }) => {
+const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId, booking, roomGroups }) => {
   // formik
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,7 +131,8 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
           price: Number(values.price || 0),
           source: values.source || undefined,
           paymentStatus: values.paymentStatus,
-          note: values.note?.trim() || undefined
+          note: values.note?.trim() || undefined,
+          status: 'success'
         };
 
         if (booking?.id) {
@@ -324,9 +323,11 @@ const OrderAction: React.FC<Props> = ({ open, onClose, houseId, onCreated, defau
               <FormControl fullWidth>
                 <InputLabel>Nguồn</InputLabel>
                 <Select name="source" value={formik.values.source} onChange={formik.handleChange}>
-                  <MenuItem value="Facebook ads">Facebook ads</MenuItem>
-                  <MenuItem value="Cộng tác viên">Cộng tác viên</MenuItem>
-                  <MenuItem value="Khách quen">Khách quen</MenuItem>
+                  {source.map((item: any) => (
+                    <MenuItem key={item.value} value={item.value}>
+                      {item.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>

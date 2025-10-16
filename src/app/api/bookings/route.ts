@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     checkIn,
     checkOut,
     price: Number(body.price ?? 0),
-    status: 'pending' as OrderStatus,
+    status: 'success' as OrderStatus,
     source: body.source ?? undefined,
     paymentStatus: (body.paymentStatus as PayStatus) ?? 'unpaid',
     note: body.note ?? undefined,

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -16,26 +17,34 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import { Form, useFormik } from 'formik';
+import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Radio } from '@mui/material';
 import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { splitToForm } from 'utils/function';
-import { hours, minutes } from 'constants/app';
-import { onlyDigits, toVND } from 'utils/format';
-import { updateBooking } from 'services/bookings';
+import { hours, minutes, source } from 'constants/app';
+import { onlyDigits, toVND, toYMD } from 'utils/format';
+import { createBooking, updateBooking } from 'services/bookings';
 import { RoomGroup } from 'types/room';
+import { notifySuccess } from 'utils/notify';
 
 type BookingModalProps = {
   selectedBooking?: any;
   roomGroups: RoomGroup[];
   openDialog: boolean;
   setOpenDialog: (value: boolean) => void;
+  onCreated?: () => void;
 };
 
-function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpenDialog = () => {} }: BookingModalProps) {
+function BookingModal({
+  selectedBooking,
+  roomGroups,
+  openDialog = false,
+  setOpenDialog = () => {},
+  onCreated = () => {}
+}: BookingModalProps) {
   const ci = splitToForm(selectedBooking?.checkIn);
   const co = splitToForm(selectedBooking?.checkOut);
 
@@ -50,11 +59,11 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
     checkOutMinute: Yup.number().min(0).max(59).required()
   });
 
-  const initialValues = {
+  const initialVal = {
     customerName: selectedBooking?.customerName || '',
     customerPhone: selectedBooking?.customerPhone || '',
     price: selectedBooking?.price || 0,
-    status: selectedBooking?.status || 'pending',
+    status: selectedBooking?.status || 'success',
     paymentStatus: selectedBooking?.paymentStatus || 'full',
     source: selectedBooking?.source || 'Facebook ads',
     note: selectedBooking?.note || '',
@@ -64,21 +73,43 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
     checkOutDate: selectedBooking?.checkOut ? co.date : dayjs().add(1, 'day'),
     checkOutHour: selectedBooking?.checkOut ? co.hour : 0,
     checkOutMinute: selectedBooking?.checkOut ? co.minute : 0,
-    roomId: selectedBooking?.roomId || ''
+    roomId: selectedBooking?.roomId?._id || ''
   };
 
+  const initialValues = useMemo(() => initialVal, [selectedBooking?.id, openDialog]);
   const formik = useFormik({
     validationSchema,
     initialValues,
+    enableReinitialize: true,
     onSubmit: async (values, { setSubmitting }) => {
+      const payload = {
+        roomId: values.roomId,
+        customerName: values.customerName.trim(),
+        customerPhone: values.customerPhone?.trim() || undefined,
+        checkInDate: toYMD(values.checkInDate as Dayjs),
+        checkInHour: Number(values.checkInHour),
+        checkInMinute: Number(values.checkInMinute),
+        checkOutDate: toYMD(values.checkOutDate as Dayjs),
+        checkOutHour: Number(values.checkOutHour),
+        checkOutMinute: Number(values.checkOutMinute),
+        price: Number(values.price || 0),
+        source: values.source || undefined,
+        paymentStatus: values.paymentStatus,
+        note: values.note?.trim() || undefined
+      };
       try {
-        await updateBooking(selectedBooking?._id, values);
-        alert('Cập nhật thành công!');
+        if (selectedBooking?._id) {
+          await updateBooking(selectedBooking?._id, payload);
+          notifySuccess('Cập nhật thành công!');
+        } else {
+          await createBooking(payload);
+          notifySuccess('Đặt phòng thành công!');
+        }
+        onCreated();
         setOpenDialog(false);
         formik.resetForm();
       } catch (err) {
-        console.error('Lỗi khi cập nhật booking:', err);
-        alert('Cập nhật thất bại!');
+        // notifyWarning('Cập nhật thất bại!');
       } finally {
         setSubmitting(false);
       }
@@ -110,17 +141,22 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Chi tiết đặt phòng</DialogTitle>
+      <DialogTitle>{selectedBooking?._id ? 'Chi tiết đặt phòng' : 'Đặt phòng'}</DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Thông tin cố định */}
-          <Typography>
-            <b>Mã đặt phòng:</b> {selectedBooking?.orderCode}
-          </Typography>
-          <Typography>
-            <b>Người tạo:</b> {selectedBooking?.createdBy}
-          </Typography>
+          {selectedBooking?._id && (
+            <Box>
+              <Typography>
+                <b>Mã đặt phòng:</b> {selectedBooking?.orderCode}
+              </Typography>
+              <Typography sx={{ mt: 2 }}>
+                <b>Người tạo:</b> {selectedBooking?.createdBy}
+              </Typography>
+            </Box>
+          )}
+
           {/* Phòng */}
           <Grid item xs={12}>
             <FormControl fullWidth>
@@ -138,7 +174,7 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
                 MenuProps={{ PaperProps: { style: { maxHeight: 360 } } }}
                 disabled={roomGroups.length === 0}
               >
-                {roomGroups.flatMap((g) => {
+                {roomGroups?.flatMap((g) => {
                   const items: JSX.Element[] = [];
                   items.push(
                     <MenuItem
@@ -192,11 +228,6 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
               inputMode="numeric"
             />
           </Grid>
-          <TextField label="Trạng thái" name="status" select value={values.status} onChange={handleChange} fullWidth>
-            <MenuItem value="pending">Đang chờ</MenuItem>
-            <MenuItem value="success">Hoàn tất</MenuItem>
-            <MenuItem value="cancelled">Đã huỷ</MenuItem>
-          </TextField>
 
           <FormControl component="fieldset">
             <RadioGroup name="paymentStatus" value={values.paymentStatus} onChange={handleChange} row>
@@ -206,7 +237,18 @@ function BookingModal({ selectedBooking, roomGroups, openDialog = false, setOpen
             </RadioGroup>
           </FormControl>
 
-          <TextField label="Nguồn" name="source" value={values.source} onChange={handleChange} fullWidth />
+          <Grid item xs={6}>
+            <FormControl fullWidth>
+              <InputLabel>Nguồn</InputLabel>
+              <Select name="source" value={formik.values.source} onChange={formik.handleChange}>
+                {source.map((item: any) => (
+                  <MenuItem key={item.value} value={item.value}>
+                    {item.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
           {/* Checkin */}
           <Grid container spacing={1}>

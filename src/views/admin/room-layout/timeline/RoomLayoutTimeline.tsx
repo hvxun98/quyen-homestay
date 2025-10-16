@@ -25,6 +25,7 @@ export default function RoomTimelineFullCalendar() {
   const [roomGroups, setRoomGroups] = useState<RoomGroup[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [dateSelected, setDateSelected] = useState<any>();
 
   useEffect(() => {
     (async () => {
@@ -77,6 +78,7 @@ export default function RoomTimelineFullCalendar() {
   const handleDatesSet = async (dateInfo: any) => {
     const from = moment(dateInfo.start).format('YYYY-MM-DD');
     const to = moment(dateInfo.end).format('YYYY-MM-DD');
+    setDateSelected(dateInfo);
     try {
       setLoading(true);
       const data = await getBookingTree({ from, to });
@@ -184,7 +186,13 @@ export default function RoomTimelineFullCalendar() {
         datesSet={handleDatesSet}
       />
 
-      <BookingModal openDialog={openDialog} roomGroups={roomGroups} selectedBooking={selectedBooking} setOpenDialog={setOpenDialog} />
+      <BookingModal
+        openDialog={openDialog}
+        roomGroups={roomGroups}
+        selectedBooking={selectedBooking}
+        setOpenDialog={setOpenDialog}
+        onCreated={() => handleDatesSet(dateSelected)}
+      />
 
       <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={loading}>
         <CircularProgress color="inherit" />
