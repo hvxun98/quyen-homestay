@@ -4,13 +4,14 @@ import { dbConnect } from 'lib/mongodb';
 import Room from 'models/Room';
 import { Types } from 'mongoose';
 import { nextRoomCode } from 'lib/roomCode';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 export const dynamic = 'force-dynamic'; // tránh cache GET khi dev
 
 // GET /api/rooms?page=1&size=10&houseId=...&q=...&type=...
 export async function GET(req: NextRequest) {
   await dbConnect();
-
+  await syncBookingAndRoomStatus();
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const size = Math.max(1, Math.min(100, parseInt(searchParams.get('size') || '10', 10)));

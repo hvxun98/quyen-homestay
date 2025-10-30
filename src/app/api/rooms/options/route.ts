@@ -3,10 +3,11 @@ import { dbConnect } from 'lib/mongodb';
 import Room from 'models/Room';
 import House from 'models/House';
 import { Types } from 'mongoose';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 export async function GET(req: NextRequest) {
   await dbConnect();
-
+  await syncBookingAndRoomStatus();
   const url = new URL(req.url);
   const houseId = url.searchParams.get('houseId') || undefined;
 

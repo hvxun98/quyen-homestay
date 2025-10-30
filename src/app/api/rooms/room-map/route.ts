@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Room from 'models/Room';
 import House from 'models/House';
+import Booking from 'models/Booking';
 import { Types } from 'mongoose';
 import { dbConnect } from 'lib/mongodb';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
-// Hỗ trợ parse nhiều giá trị "a,b,c"
 function parseCSV(q?: string | null) {
   if (!q) return [];
   return q
@@ -17,20 +18,36 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    const { searchParams } = new URL(req.url);
-    const statusParam = parseCSV(searchParams.get('status')); // available,booked,occupied,dirty
-    const houseIdsParam = parseCSV(searchParams.get('houseIds')); // 65f...,66a...
+    await syncBookingAndRoomStatus();
 
+    const { searchParams } = new URL(req.url);
+    const statusParam = parseCSV(searchParams.get('status')); // available, booked, occupied, dirty
+    const houseIdsParam = parseCSV(searchParams.get('houseIds')); // house ids
+
+    // --- Lấy toàn bộ booking đang hoạt động ---
+    const now = new Date();
+    const activeBookings = await Booking.find({
+      status: { $ne: 'cancelled' },
+      checkOut: { $gte: now }
+    })
+      .select('roomId customerName checkIn checkOut')
+      .lean();
+
+    const bookingByRoom = new Map<string, any>();
+    for (const b of activeBookings) {
+      bookingByRoom.set(String(b.roomId), b);
+    }
+
+    // --- Query phòng ---
     const filter: any = {};
     if (statusParam.length) filter.status = { $in: statusParam };
     if (houseIdsParam.length) {
       filter.houseId = { $in: houseIdsParam.map((id) => new Types.ObjectId(id)) };
     }
 
-    // Lấy toàn bộ phòng theo filter
     const rooms = await Room.find(filter).select('_id houseId code codeNorm name type status').lean();
 
-    // Map houseIds
+    // --- Lấy thông tin nhà ---
     const houseIds = Array.from(new Set(rooms.map((r) => String(r.houseId))));
     const houses = await House.find({ _id: { $in: houseIds } })
       .select('_id name code address')
@@ -38,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     const houseDict = new Map(houses.map((h) => [String(h._id), h]));
 
-    // Group theo house + thống kê theo status
+    // --- Gom nhóm theo house ---
     type Bucket = {
       houseId: string;
       houseName: string;
@@ -50,16 +67,19 @@ export async function GET(req: NextRequest) {
         _id: any;
         code: string;
         name: string;
-        type: 'Standard' | 'VIP';
-        status: 'available' | 'booked' | 'occupied' | 'dirty';
+        type: string;
+        status: string;
+        booking?: {
+          customerName: string;
+          checkIn: string;
+          checkOut: string;
+        };
       }>;
     };
 
     const buckets = new Map<string, Bucket>();
-
-    const inc = (obj: any, key: string) => (obj[key] = (obj[key] || 0) + 1);
-
     const summary = { total: 0, available: 0, booked: 0, occupied: 0, dirty: 0 };
+    const inc = (obj: any, key: string) => (obj[key] = (obj[key] || 0) + 1);
 
     for (const r of rooms) {
       const hid = String(r.houseId);
@@ -75,37 +95,61 @@ export async function GET(req: NextRequest) {
           rooms: []
         });
       }
+
       const b = buckets.get(hid)!;
-      b.rooms.push({
+      const statuses = Array.isArray(r.status) ? r.status : [r.status];
+      // Ưu tiên xác định trạng thái hiển thị chính (theo thứ tự)
+      const displayStatus = statuses.includes('occupied')
+        ? 'occupied'
+        : statuses.includes('booked')
+          ? 'booked'
+          : statuses.includes('dirty')
+            ? 'dirty'
+            : 'available';
+
+      const roomData: any = {
         _id: r._id,
         code: r.code,
         name: r.name,
         type: r.type,
-        status: r.status
-      });
-      b.count += 1;
-      inc(b.countsByStatus, r.status);
+        status: displayStatus
+      };
 
+      // Nếu đang ở => thêm thông tin booking
+      if (displayStatus === 'occupied' || displayStatus === 'booked') {
+        const booking = bookingByRoom.get(String(r._id));
+        if (booking) {
+          roomData.booking = {
+            customerName: booking.customerName,
+            checkIn: booking.checkIn,
+            checkOut: booking.checkOut
+          };
+        }
+      }
+
+      b.rooms.push(roomData);
+      b.count += 1;
+      inc(b.countsByStatus, displayStatus);
       summary.total += 1;
-      inc(summary, r.status);
+      inc(summary, displayStatus);
     }
 
-    // Sắp xếp house theo tên, room theo codeNorm (nếu có) rồi tới code
+    // --- Sắp xếp nhà và phòng ---
     const housesArr = Array.from(buckets.values())
       .sort((a, b) => a.houseName.localeCompare(b.houseName))
       .map((h) => ({
         ...h,
         rooms: h.rooms.sort((r1, r2) => {
-          // Ưu tiên sắp theo phần số trong code nếu tách được
-          const n1 = parseInt((r1.code || '').match(/\d+/)?.[0] || '0', 10);
-          const n2 = parseInt((r2.code || '').match(/\d+/)?.[0] || '0', 10);
-          if (!Number.isNaN(n1) && !Number.isNaN(n2) && n1 !== n2) return n1 - n2;
+          const n1 = parseInt(r1.code.match(/\d+/)?.[0] || '0', 10);
+          const n2 = parseInt(r2.code.match(/\d+/)?.[0] || '0', 10);
+          if (n1 !== n2) return n1 - n2;
           return (r1.code || '').localeCompare(r2.code || '');
         })
       }));
 
     return NextResponse.json({ summary, houses: housesArr }, { status: 200 });
   } catch (err: any) {
+    console.error(err);
     return NextResponse.json({ message: err?.message || 'Internal error' }, { status: 500 });
   }
 }

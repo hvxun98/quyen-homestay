@@ -3,6 +3,7 @@ import Room from 'models/Room';
 import Booking from 'models/Booking';
 import House from 'models/House';
 import { dbConnect } from 'lib/mongodb';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 function toDate(v: any) {
   const d = new Date(v);
@@ -32,6 +33,7 @@ function toDate(v: any) {
 export async function POST(req: Request) {
   try {
     await dbConnect();
+    await syncBookingAndRoomStatus();
     const { houseId, checkIn, checkOut } = await req.json();
 
     // Có thể chỉ validate tối thiểu ở BE; FE đã validate bằng Formik

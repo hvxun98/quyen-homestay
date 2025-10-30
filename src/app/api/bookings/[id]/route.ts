@@ -4,6 +4,7 @@ import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
 import mongoose from 'mongoose';
+import dayjs from 'dayjs';
 
 // ---- helpers (same parsing logic as POST) ---------------------------------
 function parseDateLocal(dateStr: string | undefined | null) {
@@ -63,13 +64,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const id = params.id;
   const body = await req.json();
 
-  // load current booking to get defaults
+  // Load current booking
   const current = await Booking.findById(id).lean();
   if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const set: any = {};
 
-  // simple fields
+  // Simple fields
   if (body.customerName != null) set.customerName = body.customerName;
   if (body.customerPhone != null) set.customerPhone = body.customerPhone;
   if (body.price != null) set.price = Number(body.price);
@@ -79,19 +80,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.paymentStatus != null) set.paymentStatus = body.paymentStatus;
 
   // room/house handling:
+  let roomIdToCheck = current.roomId;
   if (body.roomId) {
     set.roomId = body.roomId;
-    // load room to get houseId and validate existence
     const room = await Room.findById(body.roomId).lean();
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 400 });
     set.houseId = (room as any).houseId;
+    roomIdToCheck = body.roomId;
   } else if (body.houseId) {
-    // allow house change without room change
     set.houseId = body.houseId;
   }
 
-  // checkin/checkout: accept either full ISO/date strings (body.checkIn/body.checkOut)
-  // or the form-style fields (checkInDate/checkInHour/checkInMinute)
+  // checkin/checkout:
   if (body.checkInDate) {
     set.checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
   } else if (body.checkIn) {
@@ -104,15 +104,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     set.checkOut = new Date(body.checkOut);
   }
 
-  // validate checkout > checkin if both present (either changed or existing)
+  // validate checkout > checkin
   const ci = set.checkIn ? new Date(set.checkIn) : new Date(current.checkIn);
   const co = set.checkOut ? new Date(set.checkOut) : new Date(current.checkOut);
   if (!(co > ci)) {
     return NextResponse.json({ error: 'Checkout must be after checkin' }, { status: 400 });
   }
 
-  // overlap check - determine roomId to check (new or existing)
-  const roomIdToCheck = set.roomId ?? current.roomId;
+  // overlap check
   if (roomIdToCheck) {
     const oid = new mongoose.Types.ObjectId(id);
     const overlapping = await Booking.exists({
@@ -127,10 +126,46 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
   }
 
+  // Update booking
   const updated = await Booking.findByIdAndUpdate(id, { $set: set }, { new: true });
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // trả về document đã cập nhật (bao gồm virtuals nếu schema cấu hình)
+  // ---- ROOM STATUS UPDATE ----
+  if (updated.roomId) {
+    const roomDoc = await Room.findById(updated.roomId);
+    if (roomDoc) {
+      const now = dayjs();
+      let roomStatus = new Set(roomDoc.status ?? []);
+
+      // Nếu phòng đang bẩn, giữ lại "dirty"
+      const isDirty = roomStatus.has('dirty');
+
+      // Tính trạng thái logic
+      if (updated.status === 'cancelled' || now.isAfter(updated.checkOut)) {
+        // Đã checkout hoặc huỷ → available
+        roomStatus.delete('booked');
+        roomStatus.delete('occupied');
+        roomStatus.add('available');
+      } else if (now.isBefore(updated.checkIn)) {
+        // Chưa tới → booked
+        roomStatus.delete('available');
+        roomStatus.delete('occupied');
+        roomStatus.add('booked');
+      } else if (now.isAfter(updated.checkIn) && now.isBefore(updated.checkOut)) {
+        // Đang ở → occupied
+        roomStatus.delete('available');
+        roomStatus.delete('booked');
+        roomStatus.add('occupied');
+      }
+
+      // Giữ lại "dirty" nếu có
+      if (isDirty) roomStatus.add('dirty');
+
+      roomDoc.status = Array.from(roomStatus);
+      await roomDoc.save();
+    }
+  }
+
   return NextResponse.json(updated.toJSON ? updated.toJSON({ virtuals: true }) : updated);
 }
 
