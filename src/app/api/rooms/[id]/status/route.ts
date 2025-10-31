@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import Room from 'models/Room';
 import { isValidObjectId } from 'mongoose';
 import { dbConnect } from 'lib/mongodb';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect(); // Kết nối MongoDB
-
+  await syncBookingAndRoomStatus();
   const { id } = params; // Lấy id phòng từ params trong URL
   const { status } = await req.json(); // Lấy trạng thái mới từ body request
 

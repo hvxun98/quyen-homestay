@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import Room from 'models/Room';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 // GET /api/rooms/[id]
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect();
+  await syncBookingAndRoomStatus();
   try {
     const room = await Room.findById(params.id).lean();
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 // PUT /api/rooms/[id]
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect();
-
+  await syncBookingAndRoomStatus();
   let body: any;
   try {
     body = await req.json();

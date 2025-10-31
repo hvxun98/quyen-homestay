@@ -133,7 +133,7 @@ function RoomLayoutSimple() {
                 roomData?.availableRooms?.map((house: any) => (
                   <HouseItem
                     key={house?.houseId}
-                    name={house?.houseCode}
+                    name={house?.houseCode || house?.address}
                     totalRooms={house?.count}
                     rooms={house?.rooms}
                     type="success"

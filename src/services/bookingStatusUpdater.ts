@@ -7,53 +7,73 @@ import Room from 'models/Room';
  * - Nếu phòng chưa checkout → booked / occupied
  * - Nếu không còn booking nào → available
  * - Giữ lại trạng thái "dirty" nếu đã được đánh dấu trước đó
+ * - Khi booking quá checkout → loại bỏ booked/occupied cũ và set available (nếu không có booking khác)
  */
 export async function syncBookingAndRoomStatus() {
   const now = dayjs();
 
-  // Lấy toàn bộ phòng để reset trạng thái ban đầu
-  const rooms = await Room.find({});
-  const roomMap = new Map<string, Set<string>>();
+  // Lấy toàn bộ phòng
+  const rooms = await Room.find({}).lean();
 
-  rooms.forEach((r) => {
-    const statuses = new Set<string>((r.status as string[]) ?? []);
-    roomMap.set(r._id.toString(), statuses);
-  });
+  // Map roomId -> Set(status) hiện tại (để giữ lại 'dirty' nếu có)
+  const currentStatusesByRoom = new Map<string, Set<string>>();
+  for (const r of rooms) {
+    currentStatusesByRoom.set(String(r._id), new Set<string>((r.status as string[]) ?? []));
+  }
 
-  // Lấy các booking còn hiệu lực (chưa quá checkout, không hủy)
+  // Booking còn hiệu lực (không bị hủy & chưa qua checkout)
   const activeBookings = await Booking.find({
     status: { $ne: 'cancelled' },
     checkOut: { $gte: now.toDate() }
-  }).lean();
+  })
+    .select('roomId checkIn checkOut')
+    .lean();
 
-  // Gắn trạng thái booked / occupied cho phòng tương ứng
-  for (const booking of activeBookings) {
-    if (!booking.roomId) continue;
-    const roomId = booking.roomId.toString();
-    const statuses = roomMap.get(roomId) ?? new Set<string>();
+  // Gom cờ trạng thái theo từng room: có current (occupied) hay future (booked)
+  const flagsByRoom = new Map<string, { hasCurrent: boolean; hasFuture: boolean }>();
 
-    if (now.isBefore(booking.checkIn)) {
-      statuses.add('booked');
-    } else if (now.isAfter(booking.checkIn) && now.isBefore(booking.checkOut)) {
-      statuses.add('occupied');
+  for (const b of activeBookings) {
+    if (!b.roomId) continue;
+    const rid = String(b.roomId);
+    const flags = flagsByRoom.get(rid) ?? { hasCurrent: false, hasFuture: false };
+
+    const checkIn = dayjs(b.checkIn);
+    const checkOut = dayjs(b.checkOut);
+
+    if (now.isSame(checkIn) || (now.isAfter(checkIn) && now.isBefore(checkOut))) {
+      // checkIn <= now < checkOut
+      flags.hasCurrent = true;
+    } else if (now.isBefore(checkIn)) {
+      // now < checkIn
+      flags.hasFuture = true;
     }
-
-    roomMap.set(roomId, statuses);
+    flagsByRoom.set(rid, flags);
   }
 
-  // Cập nhật lại từng phòng
-  for (const [roomId, statuses] of roomMap.entries()) {
-    const room = rooms.find((r) => r._id.toString() === roomId);
-    const currentStatuses = new Set<string>((room?.status as string[]) ?? []);
+  // Tính trạng thái mới và cập nhật
+  for (const r of rooms) {
+    const rid = String(r._id);
+    const prev = currentStatusesByRoom.get(rid) ?? new Set<string>();
+    const keepDirty = prev.has('dirty');
 
-    // Giữ lại dirty nếu đang có
-    if (currentStatuses.has('dirty')) statuses.add('dirty');
+    const flags = flagsByRoom.get(rid) ?? { hasCurrent: false, hasFuture: false };
 
-    // Nếu không có booked hoặc occupied thì là available
-    const active = [...statuses].some((s) => ['booked', 'occupied'].includes(s));
-    if (!active) statuses.add('available');
+    // Xây mảng status mới: chỉ giữ 'dirty' từ trước, còn lại dựa trên booking còn hiệu lực
+    const next = new Set<string>();
 
-    await Room.findByIdAndUpdate(roomId, { status: Array.from(statuses) });
+    if (flags.hasCurrent) {
+      next.add('occupied'); // ưu tiên occupied
+    } else if (flags.hasFuture) {
+      next.add('booked');
+    } else {
+      // Không còn booking hiệu lực → available
+      next.add('available');
+    }
+
+    if (keepDirty) next.add('dirty');
+
+    // Cập nhật vào DB (đồng thời loại bỏ các trạng thái booked/occupied cũ nếu đã qua checkout)
+    await Room.findByIdAndUpdate(rid, { status: Array.from(next) });
   }
 
   console.log(`[syncBookingAndRoomStatus] Đồng bộ hoàn tất lúc ${now.format('HH:mm:ss')}`);
