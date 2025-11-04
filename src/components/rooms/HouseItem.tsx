@@ -23,10 +23,11 @@ function HouseItem({ name, totalRooms, type, showMore, rooms, onAction = () => {
       <Grid container spacing={2} sx={{ pt: 2 }}>
         {rooms?.length > 0 ? (
           rooms.map((item: any, i: number) => (
-            <Grid item xs={3} key={i}>
+            <Grid item xs={12} sm={6} key={i} md={6} lg={4} xl={3}>
               <RoomCard
                 title={item?.name}
                 color={type}
+                data={item}
                 showMore={showMore}
                 onAction={() => onAction(item?._id, item?.isDirty ? 'clean' : 'dirty')}
                 isDirty={item?.isDirty}

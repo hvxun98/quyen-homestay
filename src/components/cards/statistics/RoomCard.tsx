@@ -20,6 +20,7 @@ import MoreIcon from 'components/@extended/MoreIcon';
 // types
 import { ColorProps } from 'types/extended';
 import { Broom } from 'iconsax-react';
+import dayjs from 'dayjs';
 
 interface Props {
   title: string;
@@ -30,6 +31,7 @@ interface Props {
   color?: ColorProps;
   isDirty?: boolean;
   showMore?: boolean;
+  data?: any;
   onAction?: (value: string) => void;
 }
 
@@ -44,6 +46,7 @@ export default function RoomCard({
   children,
   showMore = true,
   isDirty = false,
+  data,
   onAction = () => {}
 }: Props) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -84,19 +87,37 @@ export default function RoomCard({
       <Grid container spacing={2}>
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Avatar variant="rounded" color={color}>
-                {iconPrimary || <BedroomChildIcon />}
-              </Avatar>
-              <Typography variant="subtitle1">{title}</Typography>
-            </Stack>
-            {isDirty ? (
-              <Box sx={{ flex: 1, marginLeft: 1 }}>
-                <Broom size="16" />
-              </Box>
-            ) : (
-              ''
-            )}
+            <Box>
+              <Stack direction="row" alignItems="start" spacing={2}>
+                <Avatar variant="rounded" color={color}>
+                  {iconPrimary || <BedroomChildIcon />}
+                </Avatar>
+                <Box>
+                  <Stack direction="row" alignItems="center">
+                    <Typography variant="subtitle1" fontSize={24}>
+                      {title}
+                    </Typography>
+                    {isDirty ? (
+                      <Box sx={{ flex: 1, marginLeft: 1 }}>
+                        <Broom size="16" />
+                      </Box>
+                    ) : (
+                      ''
+                    )}
+                  </Stack>
+                  {data?.booking ? (
+                    <Box>
+                      <Typography variant="subtitle1">{data?.booking?.customerName}</Typography>
+                      <Typography>Checkin: {dayjs(data?.booking?.checkIn).format('DD/MM/YYYY - HH:mm:ss')}</Typography>
+                      <Typography>Checkout: {dayjs(data?.booking?.checkOut).format('DD/MM/YYYY - HH:mm:ss')}</Typography>
+                    </Box>
+                  ) : (
+                    ''
+                  )}
+                </Box>
+              </Stack>
+            </Box>
+
             {showMore && (
               <IconButton
                 color="secondary"

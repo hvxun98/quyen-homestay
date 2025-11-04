@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
+import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
 
 async function run(date: string, basis: Basis) {
   await dbConnect();
+  await syncBookingAndRoomStatus();
   const { start, end } = getStartEndUTC(date);
 
   // -------- Occupancy (overlap trong ngày) --------
