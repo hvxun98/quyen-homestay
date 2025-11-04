@@ -3,6 +3,7 @@ import { Schema, model, models, Model, Types } from 'mongoose';
 
 export type BookingStatus = 'pending' | 'success' | 'cancelled';
 export type PaymentStatus = 'full' | 'deposit' | 'unpaid';
+export type SOURCE = 'facebookAds' | 'zalo' | 'dayLaDau' | 'airbnb' | 'booking' | 'senstay' | 'congTacVien';
 
 export interface IBooking {
   orderCode: string;
@@ -16,7 +17,7 @@ export interface IBooking {
   price: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
-  source?: string;
+  source?: SOURCE;
   note?: string;
   createdBy?: Types.ObjectId;
   updatedAt?: Date;

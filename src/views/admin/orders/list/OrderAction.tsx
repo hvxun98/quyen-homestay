@@ -30,6 +30,7 @@ import { BookingProps } from 'types/booking';
 import { onlyDigits, toVND, toYMD } from 'utils/format';
 import { splitToForm } from 'utils/function';
 import { hours, minutes, source } from 'constants/app';
+import { PAYMENT_STATUS } from 'constants/booking';
 
 // types
 type PayStatus = 'full' | 'deposit' | 'unpaid';
@@ -336,9 +337,9 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
             <Grid item xs={12}>
               <FormControl component="fieldset">
                 <RadioGroup name="paymentStatus" value={formik.values.paymentStatus} onChange={formik.handleChange} row>
-                  <FormControlLabel value="full" control={<Radio />} label="Thanh toán full" />
-                  <FormControlLabel value="deposit" control={<Radio />} label="Cọc" />
-                  <FormControlLabel value="unpaid" control={<Radio />} label="Chưa thanh toán" />
+                  <FormControlLabel value={PAYMENT_STATUS.FULL} control={<Radio />} label="Thanh toán full" />
+                  <FormControlLabel value={PAYMENT_STATUS.DEPOSIT} control={<Radio />} label="Cọc" />
+                  <FormControlLabel value={PAYMENT_STATUS.UNPAID} control={<Radio />} label="Chưa thanh toán" />
                 </RadioGroup>
               </FormControl>
             </Grid>

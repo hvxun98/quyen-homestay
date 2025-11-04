@@ -1,67 +1,31 @@
+// app/api/rooms/room-stats/route.ts
 import { NextResponse } from 'next/server';
-import Room from 'models/Room';
 import { dbConnect } from 'lib/mongodb';
+import Room from 'models/Room';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   await dbConnect();
   await syncBookingAndRoomStatus();
-  // Đếm theo đúng logic: available = có 'available' và KHÔNG có 'booked'/'occupied'
-  const pipeline = [
+  // Pipeline tối giản: chỉ group và đếm
+  const res = await Room.aggregate([
     {
       $group: {
         _id: null,
         total: { $sum: 1 },
-        available: {
-          $sum: {
-            $cond: [
-              {
-                $and: [
-                  { $in: ['available', '$status'] },
-                  {
-                    $not: [
-                      {
-                        $or: [{ $in: ['booked', '$status'] }, { $in: ['occupied', '$status'] }]
-                      }
-                    ]
-                  }
-                ]
-              },
-              1,
-              0
-            ]
-          }
-        },
-        booked: {
-          $sum: {
-            $cond: [{ $in: ['booked', '$status'] }, 1, 0]
-          }
-        },
-        occupied: {
-          $sum: {
-            $cond: [{ $in: ['occupied', '$status'] }, 1, 0]
-          }
-        },
-        dirty: {
-          $sum: {
-            $cond: [{ $in: ['dirty', '$status'] }, 1, 0]
-          }
-        }
+        available: { $sum: { $cond: [{ $eq: ['$status', 'available'] }, 1, 0] } },
+        booked: { $sum: { $cond: [{ $eq: ['$status', 'booked'] }, 1, 0] } },
+        occupied: { $sum: { $cond: [{ $eq: ['$status', 'occupied'] }, 1, 0] } },
+        dirty: { $sum: { $cond: [{ $eq: ['$isDirty', true] }, 1, 0] } } // đếm bẩn theo isDirty
       }
-    }
-  ] as any;
+    },
+    { $project: { _id: 0 } }
+  ]);
 
-  const rows = await Room.aggregate(pipeline);
-  const agg = rows[0] || {};
+  const fallback = { total: 0, available: 0, booked: 0, occupied: 0, dirty: 0 };
+  const stats = res && res.length ? (res[0] as typeof fallback) : fallback;
 
-  // Giữ nguyên response shape cũ
-  const base: Record<string, number> = {
-    total: agg.total ?? 0,
-    available: agg.available ?? 0,
-    booked: agg.booked ?? 0,
-    occupied: agg.occupied ?? 0,
-    dirty: agg.dirty ?? 0
-  };
-
-  return NextResponse.json(base, { status: 200 });
+  return NextResponse.json(stats, { status: 200 });
 }

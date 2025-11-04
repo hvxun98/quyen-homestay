@@ -117,13 +117,7 @@ export default function CheckRoomForm() {
 
         const res = await checkAvailableRooms(payload);
 
-        // Lỗi hệ thống/API
-        if (!res?.ok) {
-          setErrorMsg(res?.error || 'Lỗi hệ thống. Vui lòng thử lại sau.');
-          return;
-        }
-
-        setDataDisplay(res.data || []);
+        setDataDisplay(res.data);
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e: any) {
         setErrorMsg('Không kiểm tra được phòng trống.');

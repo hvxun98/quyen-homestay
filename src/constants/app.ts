@@ -3,30 +3,30 @@ export const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 45, 50, 55];
 export const source = [
   {
     label: 'Facebook ads',
-    value: 'Facebook ads'
+    value: 'facebookAds'
   },
   {
     label: 'Zalo',
-    value: 'Zalo'
+    value: 'zalo'
   },
   {
     label: 'Đây là đâu',
-    value: 'Đây là đâu'
+    value: 'dayLaDau'
   },
   {
     label: 'Airbnb',
-    value: 'Airbnb'
+    value: 'airbnb'
   },
   {
     label: 'Booking',
-    value: 'Booking'
+    value: 'booking'
   },
   {
     label: 'Senstay',
-    value: 'Senstay'
+    value: 'senstay'
   },
   {
     label: 'Cộng tác viên',
-    value: 'Cộng tác viên'
+    value: 'congTacVien'
   }
 ];

@@ -1,6 +1,6 @@
 import { Schema, model, models, Types } from 'mongoose';
 
-export type RoomStatus = 'available' | 'booked' | 'occupied' | 'dirty';
+export type RoomStatus = 'available' | 'booked' | 'occupied';
 
 interface IRoom {
   _id: Types.ObjectId;
@@ -9,7 +9,8 @@ interface IRoom {
   codeNorm: string;
   name: string;
   type: 'Standard' | 'VIP';
-  status: RoomStatus[];
+  status: RoomStatus;
+  isDirty: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -21,7 +22,17 @@ const RoomSchema = new Schema<IRoom>(
     codeNorm: { type: String, required: true, trim: true, uppercase: true, index: true },
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ['Standard', 'VIP'], required: true },
-    status: { type: [String], enum: ['available', 'booked', 'occupied', 'dirty'], default: ['available'] } // Mảng trạng thái
+
+    // ✅ status: string (3 trạng thái)
+    status: {
+      type: String,
+      enum: ['available', 'booked', 'occupied'],
+      required: true,
+      default: 'available'
+    },
+
+    // ✅ thêm cờ isDirty
+    isDirty: { type: Boolean, default: false }
   },
   { timestamps: true, strict: true }
 );
@@ -29,9 +40,11 @@ const RoomSchema = new Schema<IRoom>(
 // Unique trong phạm vi 1 nhà
 RoomSchema.index({ houseId: 1, codeNorm: 1 }, { unique: true });
 
-// Phòng khi update code thủ công (nếu có), vẫn đồng bộ codeNorm
+// Đồng bộ codeNorm khi cập nhật code
 RoomSchema.pre('validate', function (next) {
-  if (this.code) this.codeNorm = this.code.trim().replace(/\s+/g, '_').toUpperCase();
+  if ((this as any).code) {
+    (this as any).codeNorm = (this as any).code.trim().replace(/\s+/g, '_').toUpperCase();
+  }
   next();
 });
 

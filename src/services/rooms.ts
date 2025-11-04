@@ -1,5 +1,5 @@
 // services/rooms.ts
-import { fetcher, fetcherPost, fetcherPut, fetcherDelete } from 'utils/axios';
+import { fetcher, fetcherPost, fetcherPut, fetcherDelete, fetcherPatch } from 'utils/axios';
 
 export type AvailabilityPayload = {
   houseId: string;
@@ -33,9 +33,12 @@ export const checkAvailableRooms = async (payload: AvailabilityPayload) => {
 // Lấy danh sách phòng theo trạng thái
 export const getRoomsByStatus = async (status: string, houseIds: string[] = []) => {
   const houseIdsParam = houseIds.length ? `&houseIds=${houseIds.join(',')}` : '';
+  // NEW: dirty không còn là status → dùng isDirty=1
+  if (status === 'dirty') {
+    return await fetcher(`/api/rooms/room-map?isDirty=1${houseIdsParam}`);
+  }
   return await fetcher(`/api/rooms/room-map?status=${status}${houseIdsParam}`);
 };
-
 // Lấy thông tin thống kê phòng (total, available, booked, etc.)
 export const getRoomStats = async () => {
   return await fetcher('/api/rooms/room-stats');
@@ -43,4 +46,8 @@ export const getRoomStats = async () => {
 
 export const updateRoomStatus = async (roomId: string, status: string) => {
   return await fetcherPut(`/api/rooms/${roomId}/status`, { status });
+};
+
+export const updateRoomDirty = async (roomId: string, isDirty: boolean) => {
+  return await fetcherPatch(`/api/rooms/${roomId}/dirty`, { isDirty });
 };

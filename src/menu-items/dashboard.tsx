@@ -13,10 +13,10 @@ const loadingMenu: NavItemType = {
   type: 'group',
   children: [
     {
-      id: 'analytics1',
-      title: <FormattedMessage id="analytics1" defaultMessage="Tổng quan" />,
+      id: 'Tổng quan',
+      title: <FormattedMessage id="Tổng quan" defaultMessage="Tổng quan" />,
       type: 'item',
-      url: '/dashboard/analytics',
+      url: '/dashboard/default',
       icon: Home3
     }
   ]

@@ -1,112 +1,110 @@
-import { NextResponse } from 'next/server';
+// app/api/rooms/availability/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { dbConnect } from 'lib/mongodb';
+import { Types, isValidObjectId } from 'mongoose';
 import Room from 'models/Room';
 import Booking from 'models/Booking';
 import House from 'models/House';
-import { dbConnect } from 'lib/mongodb';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 
-function toDate(v: any) {
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) throw new Error('Định dạng ngày/giờ không hợp lệ.');
-  return d;
-}
+export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/rooms/available
- * body:
- * {
- *   checkIn: "2025-09-28T08:00:00.000Z",
- *   checkOut: "2025-09-29T03:00:00.000Z",
- *   houseId?: "..." // tùy chọn
- * }
- *
- * Trả về:
- * {
- *   ok: true,
- *   meta: {...},
- *   data: [
- *     { house: { _id, code, address }, rooms: [ {_id, code, codeNorm, name, type, status}, ... ] },
- *     ...
- *   ]
- * }
- */
-export async function POST(req: Request) {
+type Body = {
+  checkIn: string; // ISO
+  checkOut: string; // ISO
+  houseId?: string; // optional
+};
+
+export async function POST(req: NextRequest) {
+  await dbConnect();
+  await syncBookingAndRoomStatus();
+  let body: Body;
   try {
-    await dbConnect();
-    await syncBookingAndRoomStatus();
-    const { houseId, checkIn, checkOut } = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
 
-    // Có thể chỉ validate tối thiểu ở BE; FE đã validate bằng Formik
-    if (!checkIn || !checkOut) {
-      return NextResponse.json({ ok: false, error: 'Thiếu tham số: checkIn, checkOut.' }, { status: 400 });
+  const { checkIn, checkOut, houseId } = body || {};
+  if (!checkIn || !checkOut) {
+    return NextResponse.json({ error: "Fields 'checkIn' and 'checkOut' are required (ISO)" }, { status: 422 });
+  }
+
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  if (!(start < end)) {
+    return NextResponse.json({ error: "'checkIn' must be earlier than 'checkOut'" }, { status: 422 });
+  }
+
+  // Điều kiện overlap (half-open):
+  // booking.checkIn < checkOut  &&  booking.checkOut > checkIn
+  const bookingMatch: any = {
+    status: { $ne: 'cancelled' },
+    checkIn: { $lt: end },
+    checkOut: { $gt: start }
+  };
+
+  const roomMatch: any = {};
+  if (houseId) {
+    if (!isValidObjectId(houseId)) {
+      return NextResponse.json({ error: 'Invalid houseId' }, { status: 422 });
+    }
+    const houseOid = new Types.ObjectId(houseId);
+    // nếu Booking có houseId, filter để giảm phạm vi
+    bookingMatch.houseId = houseOid;
+    roomMatch.houseId = houseOid;
+  }
+
+  try {
+    // 1) Tìm các roomId có booking chồng lấn
+    const overlappedIds = await Booking.distinct('roomId', bookingMatch); // ObjectId[]
+
+    // 2) Lấy các phòng KHÔNG trùng booking -> TRỐNG trong khoảng yêu cầu
+    if (overlappedIds.length) {
+      roomMatch._id = { $nin: overlappedIds as Types.ObjectId[] };
     }
 
-    const ci = toDate(checkIn);
-    const co = toDate(checkOut);
-    if (co <= ci) {
-      return NextResponse.json({ ok: false, error: 'Thời gian trả phòng phải sau thời gian nhận phòng.' }, { status: 400 });
-    }
+    const rooms = await Room.find(roomMatch).select('_id houseId code codeNorm name type status isDirty').sort({ code: 1 }).lean();
 
-    // 1) Các booking trùng khoảng [ci, co)
-    const bookingFilter: any = {
-      status: { $ne: 'cancelled' },
-      checkIn: { $lt: co },
-      checkOut: { $gt: ci }
-    };
-    if (houseId) bookingFilter.houseId = houseId;
+    // 3) Gom theo houseId, trả đúng format cũ
+    const byHouseId = new Map<string, { house: { _id: string; code: string; address: string }; rooms: any[] }>();
 
-    const overlapping = await Booking.find(bookingFilter).select('roomId').lean();
-    const occupiedIds = new Set(overlapping.map((b) => String(b.roomId)));
+    // lấy thông tin house (code, address)
+    const houseIds = Array.from(new Set(rooms.map((r) => String(r.houseId))));
+    const houses = houseIds.length
+      ? await House.find({ _id: { $in: houseIds.map((id) => new Types.ObjectId(id)) } })
+          .select('_id code address')
+          .lean()
+      : [];
 
-    // 2) Lấy phòng 'available' & không thuộc occupiedIds
-    const roomFilter: any = {
-      status: 'available',
-      _id: { $nin: Array.from(occupiedIds) }
-    };
-    if (houseId) roomFilter.houseId = houseId;
+    const houseMap = new Map(houses.map((h) => [String(h._id), h]));
 
-    const rooms = await Room.find(roomFilter)
-      .select('_id houseId code codeNorm name type status')
-      .sort({ codeNorm: 1, name: 1 })
-      .populate({ path: 'houseId', model: House, select: '_id code address' })
-      .lean();
-
-    // 3) Group theo house
-    const map = new Map<string, { house: any; rooms: any[] }>();
-    for (const r of rooms as any[]) {
-      const h = r.houseId; // đã populate
-      const key = String(h?._id || r.houseId);
-      if (!map.has(key)) {
-        map.set(key, {
-          house: h ? { _id: String(h._id), code: h.code, address: h.address } : { _id: key, code: '', address: '' },
+    for (const r of rooms) {
+      const key = String(r.houseId);
+      if (!byHouseId.has(key)) {
+        const h = houseMap.get(key);
+        byHouseId.set(key, {
+          house: h ? { _id: String(h._id), code: h.code || '', address: h.address || '' } : { _id: key, code: '', address: '' },
           rooms: []
         });
       }
-      map.get(key)!.rooms.push({
-        _id: String(r._id),
+      byHouseId.get(key)!.rooms.push({
+        _id: r._id,
         code: r.code,
         codeNorm: r.codeNorm,
         name: r.name,
-        type: r.type, // 'Standard' | 'VIP'
-        status: r.status // 'available'
+        type: r.type,
+        status: r.status, // trạng thái "hiện tại" để hiển thị, không dùng để check tương lai
+        isDirty: !!r.isDirty // chỉ trả kèm, không ảnh hưởng kết quả availability
       });
     }
 
-    const data = Array.from(map.values());
+    const result = Array.from(byHouseId.values());
 
-    return NextResponse.json({
-      ok: true,
-      meta: {
-        houseId: houseId || null,
-        checkIn: ci.toISOString(),
-        checkOut: co.toISOString(),
-        groups: data.length,
-        totalRooms: rooms.length
-      },
-      data
-    });
-  } catch (err: any) {
-    const msg = err?.message || 'Lỗi hệ thống. Vui lòng thử lại sau.';
-    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+    // ✅ Trả đúng cấu trúc cũ (một mảng các { house, rooms })
+    return NextResponse.json({ data: result }, { status: 200 });
+  } catch (e: any) {
+    console.error('availability POST error:', e);
+    return NextResponse.json({ error: 'Failed to check availability' }, { status: 500 });
   }
 }

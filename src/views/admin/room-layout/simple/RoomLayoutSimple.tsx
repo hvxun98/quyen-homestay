@@ -4,7 +4,7 @@ import MainCard from 'components/MainCard';
 import { Broom } from 'iconsax-react';
 import React, { ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import HouseItem from '../../../../components/rooms/HouseItem';
-import { getRoomStats, getRoomsByStatus, updateRoomStatus } from 'services/rooms';
+import { getRoomStats, getRoomsByStatus, updateRoomDirty } from 'services/rooms';
 import Empty from 'components/Empty';
 
 interface TabPanelProps {
@@ -93,10 +93,13 @@ function RoomLayoutSimple() {
   const handleAction = async (roomId: string, currentStatus: string) => {
     try {
       setLoading(true);
-      await updateRoomStatus(roomId, currentStatus);
-      // Sau khi thay đổi trạng thái, gọi lại API để làm mới dữ liệu
-      fetchRooms(value === 0 ? 'available' : value === 1 ? 'booked' : value === 2 ? 'occupied' : 'dirty');
-      fetchRoomStats();
+      if (currentStatus === 'dirty') {
+        await updateRoomDirty(roomId, true);
+      } else {
+        await updateRoomDirty(roomId, false);
+      }
+      await fetchRooms(value === 0 ? 'available' : value === 1 ? 'booked' : value === 2 ? 'occupied' : 'dirty');
+      await fetchRoomStats();
     } catch (error) {
       console.error('Error changing room status:', error);
     } finally {

@@ -28,8 +28,8 @@ function HouseItem({ name, totalRooms, type, showMore, rooms, onAction = () => {
                 title={item?.name}
                 color={type}
                 showMore={showMore}
-                onAction={(status) => onAction(item?._id, status)}
-                isDirty={item?.status?.includes('dirty')}
+                onAction={() => onAction(item?._id, item?.isDirty ? 'clean' : 'dirty')}
+                isDirty={item?.isDirty}
               />
             </Grid>
           ))

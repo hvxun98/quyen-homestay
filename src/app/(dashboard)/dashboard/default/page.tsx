@@ -1,8 +1,8 @@
 // project-imports
-import DashboardDefault from 'views/dashboard/DashboardDefault';
+import DashboardDaily from 'views/admin/dasboard/DashboardDaily';
 
 // ==============================|| DASHBOARD - DEFAULT ||============================== //
 
 export default function Dashboard() {
-  return <DashboardDefault />;
+  return <DashboardDaily />;
 }

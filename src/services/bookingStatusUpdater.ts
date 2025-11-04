@@ -1,80 +1,75 @@
-import dayjs from 'dayjs';
-import Booking from 'models/Booking';
+// services/bookingStatusUpdater.ts
 import Room from 'models/Room';
+import Booking from 'models/Booking';
+
+type RoomStatus = 'available' | 'booked' | 'occupied';
 
 /**
- * Đồng bộ trạng thái phòng dựa theo booking hiện tại
- * - Nếu phòng chưa checkout → booked / occupied
- * - Nếu không còn booking nào → available
- * - Giữ lại trạng thái "dirty" nếu đã được đánh dấu trước đó
- * - Khi booking quá checkout → loại bỏ booked/occupied cũ và set available (nếu không có booking khác)
+ * Đồng bộ trạng thái phòng theo booking hiện tại.
+ * - occupied: đang ở (checkIn <= now < checkOut)
+ * - booked: không occupied nhưng có booking tương lai (checkIn > now)
+ * - available: còn lại
+ *
+ * LƯU Ý:
+ * - KHÔNG thay đổi isDirty ở đây (để housekeeping/luồng khác xử lý).
+ * - Chỉ ghi DB nếu status thực sự thay đổi.
+ *
+ * @returns số phòng đã cập nhật
  */
-export async function syncBookingAndRoomStatus() {
-  const now = dayjs();
+export async function syncBookingAndRoomStatus(now: Date = new Date()): Promise<number> {
+  // 1) Lấy tất cả phòng với _id + status hiện tại
+  const rooms = await Room.find({}, { _id: 1, status: 1 }).lean();
 
-  // Lấy toàn bộ phòng
-  const rooms = await Room.find({}).lean();
+  // 2) Tập phòng đang occupied (hiện tại đang lưu trú)
+  const occupiedBookings = await Booking.find(
+    {
+      status: { $ne: 'cancelled' },
+      checkIn: { $lte: now },
+      checkOut: { $gt: now } // now < checkOut
+    },
+    { roomId: 1 }
+  ).lean();
 
-  // Map roomId -> Set(status) hiện tại (để giữ lại 'dirty' nếu có)
-  const currentStatusesByRoom = new Map<string, Set<string>>();
+  // 3) Tập phòng có booking tương lai (không tính đã hủy)
+  const futureBookings = await Booking.find(
+    {
+      status: { $ne: 'cancelled' },
+      checkIn: { $gt: now }
+    },
+    { roomId: 1 }
+  ).lean();
+
+  const occupiedSet = new Set<string>(occupiedBookings.map((b: any) => String(b.roomId)).filter(Boolean));
+  const futureSet = new Set<string>(futureBookings.map((b: any) => String(b.roomId)).filter(Boolean));
+
+  // 4) Tính trạng thái mới cho từng phòng và gom các update thay đổi
+  const bulkOps: any[] = [];
+
   for (const r of rooms) {
-    currentStatusesByRoom.set(String(r._id), new Set<string>((r.status as string[]) ?? []));
-  }
+    const id = String(r._id);
+    let newStatus: RoomStatus = 'available';
 
-  // Booking còn hiệu lực (không bị hủy & chưa qua checkout)
-  const activeBookings = await Booking.find({
-    status: { $ne: 'cancelled' },
-    checkOut: { $gte: now.toDate() }
-  })
-    .select('roomId checkIn checkOut')
-    .lean();
+    if (occupiedSet.has(id)) newStatus = 'occupied';
+    else if (futureSet.has(id)) newStatus = 'booked';
+    else newStatus = 'available';
 
-  // Gom cờ trạng thái theo từng room: có current (occupied) hay future (booked)
-  const flagsByRoom = new Map<string, { hasCurrent: boolean; hasFuture: boolean }>();
-
-  for (const b of activeBookings) {
-    if (!b.roomId) continue;
-    const rid = String(b.roomId);
-    const flags = flagsByRoom.get(rid) ?? { hasCurrent: false, hasFuture: false };
-
-    const checkIn = dayjs(b.checkIn);
-    const checkOut = dayjs(b.checkOut);
-
-    if (now.isSame(checkIn) || (now.isAfter(checkIn) && now.isBefore(checkOut))) {
-      // checkIn <= now < checkOut
-      flags.hasCurrent = true;
-    } else if (now.isBefore(checkIn)) {
-      // now < checkIn
-      flags.hasFuture = true;
+    if (r.status !== newStatus) {
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: r._id },
+          update: { $set: { status: newStatus } } // ❗ KHÔNG chạm isDirty
+        }
+      });
     }
-    flagsByRoom.set(rid, flags);
   }
 
-  // Tính trạng thái mới và cập nhật
-  for (const r of rooms) {
-    const rid = String(r._id);
-    const prev = currentStatusesByRoom.get(rid) ?? new Set<string>();
-    const keepDirty = prev.has('dirty');
+  if (!bulkOps.length) return 0;
 
-    const flags = flagsByRoom.get(rid) ?? { hasCurrent: false, hasFuture: false };
+  const res = await Room.bulkWrite(bulkOps, { ordered: false });
+  // modifiedCount có thể khác matchedCount; ưu tiên lấy nModified-like
+  const updated =
+    // @ts-ignore for compatibility across mongoose/mongo types
+    res.modifiedCount ?? res.nModified ?? res.result?.nModified ?? 0;
 
-    // Xây mảng status mới: chỉ giữ 'dirty' từ trước, còn lại dựa trên booking còn hiệu lực
-    const next = new Set<string>();
-
-    if (flags.hasCurrent) {
-      next.add('occupied'); // ưu tiên occupied
-    } else if (flags.hasFuture) {
-      next.add('booked');
-    } else {
-      // Không còn booking hiệu lực → available
-      next.add('available');
-    }
-
-    if (keepDirty) next.add('dirty');
-
-    // Cập nhật vào DB (đồng thời loại bỏ các trạng thái booked/occupied cũ nếu đã qua checkout)
-    await Room.findByIdAndUpdate(rid, { status: Array.from(next) });
-  }
-
-  console.log(`[syncBookingAndRoomStatus] Đồng bộ hoàn tất lúc ${now.format('HH:mm:ss')}`);
+  return updated;
 }

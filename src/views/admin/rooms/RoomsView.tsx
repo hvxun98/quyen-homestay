@@ -47,7 +47,7 @@ function RoomsView() {
     setLoading(true);
     try {
       const res = await getRooms({ pageNum, pageSize, houseId });
-      setRooms(res.items || []);
+      setRooms(res.data || []);
       setTotal(res.total || 0);
     } finally {
       setLoading(false);
