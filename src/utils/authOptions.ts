@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
           headers: { 'Content-Type': 'application/json' },
           // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
           // credentials: "include",  // bật nếu cần cookie giữa các domain/subdomain
+          credentials: 'include',
           body: JSON.stringify({
             email: credentials.email,
             password: credentials.password
