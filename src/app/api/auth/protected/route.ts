@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from 'utils/authOptions';
-
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET() {
