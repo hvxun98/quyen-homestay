@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 // project-imports
 import { authOptions } from 'utils/authOptions';
+export const runtime = 'nodejs';
 
 // ==============================|| NEXT AUTH - ROUTES  ||============================== //
 

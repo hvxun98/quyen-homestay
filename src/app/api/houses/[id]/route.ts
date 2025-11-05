@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import House from 'models/House';
+export const runtime = 'nodejs';
 
 // GET /api/houses/[id] - lấy chi tiết 1 nhà
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

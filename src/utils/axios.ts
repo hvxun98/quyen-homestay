@@ -4,7 +4,7 @@ import Router from 'next/router';
 import { notifyError } from './notifier';
 
 const axiosServices = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BASE_API_URL
+  baseURL: ''
 });
 
 function extractError(payload: any): { code: string; message: string } {

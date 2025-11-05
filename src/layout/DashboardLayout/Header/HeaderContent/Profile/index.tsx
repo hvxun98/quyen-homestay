@@ -167,26 +167,26 @@ export default function ProfilePage() {
                         <Stack direction="row" spacing={1.25} alignItems="center">
                           <Avatar alt="profile user" src={avatar1} />
                           <Stack>
-                            <Typography variant="subtitle1">{user ? user?.name : ''}</Typography>
+                            <Typography variant="subtitle1">{user ? user?.email : ''}</Typography>
                             <Typography variant="body2" color="secondary">
-                              UI/UX Designer
+                              Administrator
                             </Typography>
                           </Stack>
                         </Stack>
                       </Grid>
-                      <Grid item>
+                      {/* <Grid item>
                         <Tooltip title="Logout">
                           <IconButton size="large" color="error" sx={{ p: 1 }} onClick={handleLogout}>
                             <Logout variant="Bulk" />
                           </IconButton>
                         </Tooltip>
-                      </Grid>
+                      </Grid> */}
                     </Grid>
                   </CardContent>
 
-                  <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs variant="fullWidth" value={value} onChange={handleChange} aria-label="profile tabs">
-                      <Tab
+                  {/* <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                    <Tabs variant="fullWidth" value={value} onChange={handleChange} aria-label="profile tabs"> */}
+                  {/* <Tab
                         sx={{
                           display: 'flex',
                           flexDirection: 'row',
@@ -197,8 +197,8 @@ export default function ProfilePage() {
                         icon={<Profile size={18} style={{ marginBottom: 0, marginRight: '10px' }} />}
                         label="Profile"
                         {...a11yProps(0)}
-                      />
-                      <Tab
+                      /> */}
+                  {/* <Tab
                         sx={{
                           display: 'flex',
                           flexDirection: 'row',
@@ -209,15 +209,15 @@ export default function ProfilePage() {
                         icon={<Setting2 size={18} style={{ marginBottom: 0, marginRight: '10px' }} />}
                         label="Setting"
                         {...a11yProps(1)}
-                      />
-                    </Tabs>
-                  </Box>
-                  <TabPanel value={value} index={0} dir={theme.direction}>
-                    <ProfileTab handleLogout={handleLogout} />
-                  </TabPanel>
-                  <TabPanel value={value} index={1} dir={theme.direction}>
+                      /> */}
+                  {/* </Tabs>
+                  </Box> */}
+                  {/* <TabPanel value={value} index={0} dir={theme.direction}> */}
+                  <ProfileTab handleLogout={handleLogout} />
+                  {/* </TabPanel> */}
+                  {/* <TabPanel value={value} index={1} dir={theme.direction}>
                     <SettingTab />
-                  </TabPanel>
+                  </TabPanel> */}
                 </MainCard>
               </ClickAwayListener>
             </Paper>

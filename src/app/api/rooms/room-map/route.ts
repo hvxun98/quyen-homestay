@@ -5,6 +5,7 @@ import Room from 'models/Room';
 import House from 'models/House';
 import Booking from 'models/Booking';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+export const runtime = 'nodejs';
 
 export const dynamic = 'force-dynamic';
 

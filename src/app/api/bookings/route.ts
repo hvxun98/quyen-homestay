@@ -6,6 +6,7 @@ import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { nextSeq } from 'lib/counter';
 import { authOptions } from 'utils/authOptions';
+export const runtime = 'nodejs';
 
 // ---- Helpers ---------------------------------------------------------------
 type PayStatus = 'full' | 'deposit' | 'unpaid';

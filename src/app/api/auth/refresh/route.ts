@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { dbConnect } from 'lib/mongodb';
 import Session from 'models/Session';
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   await dbConnect();

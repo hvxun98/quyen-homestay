@@ -4,6 +4,7 @@ import Room from 'models/Room';
 import { isValidObjectId } from 'mongoose';
 import { dbConnect } from 'lib/mongodb';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+export const runtime = 'nodejs';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect(); // Kết nối MongoDB

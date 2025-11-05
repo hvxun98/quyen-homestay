@@ -4,7 +4,7 @@ import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
-
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 type Basis = 'checkIn' | 'createdAt';

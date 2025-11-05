@@ -1,6 +1,7 @@
 import { dbConnect } from 'lib/mongodb';
 import House from 'models/House';
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 
 // GET /api/houses?page=1&size=10&q=LLQ
 export async function GET(req: NextRequest) {

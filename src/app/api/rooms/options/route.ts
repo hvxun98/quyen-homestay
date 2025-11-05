@@ -4,6 +4,7 @@ import Room from 'models/Room';
 import House from 'models/House';
 import { Types } from 'mongoose';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   await dbConnect();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import Room from 'models/Room';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+export const runtime = 'nodejs';
 
 // GET /api/rooms/[id]
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

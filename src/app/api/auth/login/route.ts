@@ -5,6 +5,7 @@ import { dbConnect } from 'lib/mongodb';
 import User from 'models/User';
 import { signAccess } from 'lib/auth';
 import Session from 'models/Session';
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   await dbConnect();

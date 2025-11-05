@@ -4,6 +4,7 @@ import { dbConnect } from 'lib/mongodb';
 import House from 'models/House';
 import Room from 'models/Room';
 import Booking from 'models/Booking';
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   await dbConnect();

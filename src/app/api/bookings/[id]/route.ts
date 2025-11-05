@@ -5,6 +5,7 @@ import Booking from 'models/Booking';
 import Room from 'models/Room';
 import mongoose from 'mongoose';
 import dayjs from 'dayjs';
+export const runtime = 'nodejs';
 
 // ---- helpers (same parsing logic as POST) ---------------------------------
 function parseDateLocal(dateStr: string | undefined | null) {

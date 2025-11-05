@@ -5,6 +5,7 @@ import Room from 'models/Room';
 import { isValidObjectId, Types } from 'mongoose';
 import { nextRoomCode } from 'lib/roomCode';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+export const runtime = 'nodejs';
 
 export const dynamic = 'force-dynamic'; // tránh cache GET khi dev
 const ROOM_STATUS = ['available', 'booked', 'occupied'] as const;
