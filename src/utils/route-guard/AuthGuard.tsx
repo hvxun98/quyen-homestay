@@ -7,9 +7,12 @@ import Loader from 'components/Loader';
 import type { GuardProps } from 'types/auth';
 
 export default function AuthGuard({ children }: GuardProps) {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+
+  console.log('status', status);
+  console.log('session', session);
 
   useEffect(() => {
     if (status === 'loading') return;

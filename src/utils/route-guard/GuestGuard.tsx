@@ -19,6 +19,10 @@ export default function GuestGuard({ children }: GuardProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const ispValueAvailable = useIspValue();
+
+  console.log('status', status);
+  console.log('session', session);
+
   useEffect(() => {
     const fetchData = async () => {
       const res: any = await fetch('/api/auth/protected');
