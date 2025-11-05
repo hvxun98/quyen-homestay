@@ -1,18 +1,15 @@
-// next
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-
-// project-imports
 import { authOptions } from 'utils/authOptions';
+
 export const runtime = 'nodejs';
 
-// ==============================|| NEXT AUTH - ROUTES  ||============================== //
-
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (session) {
-    return NextResponse.json({ protected: true });
-  } else {
-    return NextResponse.json({ protected: false });
+  try {
+    const session = await getServerSession(authOptions);
+    return NextResponse.json({ protected: !!session });
+  } catch (err) {
+    console.error('Error reading session:', err);
+    return NextResponse.json({ protected: false, error: 'Session check failed' });
   }
 }

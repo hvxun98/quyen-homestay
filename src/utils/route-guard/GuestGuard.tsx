@@ -20,21 +20,11 @@ export default function GuestGuard({ children }: GuardProps) {
   const router = useRouter();
   const ispValueAvailable = useIspValue();
 
-  console.log('status', status);
-  console.log('session', session);
-
   useEffect(() => {
-    const fetchData = async () => {
-      const res: any = await fetch('/api/auth/protected');
-      const json = await res?.json();
-      if (json?.protected) {
-        router.push(ispValueAvailable ? '/dashboard/default?isp=1' : '/dashboard/default');
-      }
-    };
-    fetchData();
-
-    // eslint-disable-next-line
-  }, [session]);
+    if (status === 'authenticated') {
+      router.push(ispValueAvailable ? '/dashboard/default?isp=1' : '/dashboard/default');
+    }
+  }, [status]);
 
   if (status === 'loading' || session?.user) return <Loader />;
 
