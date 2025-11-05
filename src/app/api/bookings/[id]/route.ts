@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.source != null) set.source = body.source;
   if (body.paymentStatus != null) set.paymentStatus = body.paymentStatus;
 
-  // room/house handling:
+  // room/house handling
   let roomIdToCheck = current.roomId;
   if (body.roomId) {
     set.roomId = body.roomId;
@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     set.houseId = body.houseId;
   }
 
-  // checkin/checkout:
+  // checkin/checkout
   if (body.checkInDate) {
     set.checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
   } else if (body.checkIn) {
@@ -131,51 +131,53 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const updated = await Booking.findByIdAndUpdate(id, { $set: set }, { new: true });
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // ---- ROOM STATUS UPDATE ----
+  // ---- ROOM STATUS UPDATE (STRING only) ----
   if (updated.roomId) {
     const roomDoc = await Room.findById(updated.roomId);
     if (roomDoc) {
       const now = dayjs();
-      let roomStatus = new Set(roomDoc.status ?? []);
 
-      // Nếu phòng đang bẩn, giữ lại "dirty"
-      const isDirty = roomStatus.has('dirty');
-
-      // Tính trạng thái logic
       if (updated.status === 'cancelled' || now.isAfter(updated.checkOut)) {
-        // Đã checkout hoặc huỷ → available
-        roomStatus.delete('booked');
-        roomStatus.delete('occupied');
-        roomStatus.add('available');
+        // Huỷ hoặc đã checkout → available
+        roomDoc.status = 'available';
       } else if (now.isBefore(updated.checkIn)) {
         // Chưa tới → booked
-        roomStatus.delete('available');
-        roomStatus.delete('occupied');
-        roomStatus.add('booked');
+        roomDoc.status = 'booked';
       } else if (now.isAfter(updated.checkIn) && now.isBefore(updated.checkOut)) {
         // Đang ở → occupied
-        roomStatus.delete('available');
-        roomStatus.delete('booked');
-        roomStatus.add('occupied');
+        roomDoc.status = 'occupied';
       }
 
-      // Giữ lại "dirty" nếu có
-      if (isDirty) roomStatus.add('dirty');
-
-      roomDoc.status = Array.from(roomStatus);
       await roomDoc.save();
     }
   }
 
   return NextResponse.json(updated.toJSON ? updated.toJSON({ virtuals: true }) : updated);
 }
-
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   await dbConnect();
   const id = params.id;
-  // soft-cancel để giữ lịch sử và mã đơn
-  const updated = await Booking.findByIdAndUpdate(id, { $set: { status: 'cancelled' } }, { new: true });
-  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json({ ok: true, status: updated.status });
+
+  try {
+    const booking = await Booking.findByIdAndUpdate(id, { $set: { status: 'cancelled' } }, { new: true });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // 2️⃣ Cập nhật room status nếu hiện đang 'booked'
+    if (booking.roomId) {
+      const roomDoc = await Room.findById(booking.roomId);
+      if (roomDoc && roomDoc.status === 'booked') {
+        roomDoc.status = 'available';
+        await roomDoc.save();
+      }
+    }
+
+    return NextResponse.json({ ok: true, bookingStatus: booking.status });
+  } catch (err) {
+    console.error('DELETE booking error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 // ...existing code...

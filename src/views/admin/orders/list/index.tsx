@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, FormControl, Grid, MenuItem, Select, TextField, Stack } from '@mui/material';
+import { Box, Button, FormControl, Grid, MenuItem, Select, TextField, Stack, Typography } from '@mui/material';
 import { Column, CommonTable } from 'components/table/CommonTable';
 import { Add, Edit, SearchNormal1, Trash } from 'iconsax-react';
 import { FormattedMessage } from 'react-intl';
@@ -17,8 +17,9 @@ import { INPUT_BASER_STYLE } from 'constants/style';
 // Services (bạn đã có axios fetcher)
 import { getHouses } from 'services/houses';
 import { getRoomOptions } from 'services/rooms';
-import { getBookings } from 'services/bookings';
+import { cancelBooking, getBookings } from 'services/bookings';
 import { RoomGroup } from 'types/room';
+import { notifySuccess } from 'utils/notify';
 
 // ---- Types khớp API ---------------------------------------------------------
 
@@ -129,19 +130,39 @@ export default function Orders() {
     },
     {
       label: <FormattedMessage id="Trạng thái" defaultMessage="Trạng thái" />,
-      render: (r) => (r.status === 'success' ? 'Thành công' : r.status === 'cancelled' ? 'Huỷ' : 'Đang xử lý')
+      render: (r) =>
+        r.status === 'success' ? (
+          <Typography color="green">Thành công</Typography>
+        ) : r.status === 'cancelled' ? (
+          <Typography color="red">Đã hủy</Typography>
+        ) : (
+          'Đang xử lý'
+        )
     },
     {
       label: <FormattedMessage id="Tác vụ" defaultMessage="Tác vụ" />,
       render: (r) => (
-        <Stack flexDirection="row" gap={1}>
-          <Button color="primary" variant="contained" startIcon={<Edit />} onClick={() => handleEdit(r)}>
-            Sửa
-          </Button>
-          <Button color="error" variant="contained" startIcon={<Trash />} onClick={() => setIsDeleteModal(true)}>
-            Huỷ
-          </Button>
-        </Stack>
+        <Box>
+          {r?.status !== 'cancelled' && (
+            <Stack flexDirection="row" gap={1}>
+              <Button color="primary" variant="contained" startIcon={<Edit />} onClick={() => handleEdit(r)}>
+                Sửa
+              </Button>
+
+              <Button
+                color="error"
+                variant="contained"
+                startIcon={<Trash />}
+                onClick={() => {
+                  setEditingBooking(r);
+                  setIsDeleteModal(true);
+                }}
+              >
+                Huỷ
+              </Button>
+            </Stack>
+          )}
+        </Box>
       )
     }
   ];
@@ -202,6 +223,16 @@ export default function Orders() {
       setLoading(false);
     }
   }
+
+  const handleCancel = async () => {
+    try {
+      await cancelBooking(editingBooking?.id);
+      fetchBookingsList(1, pageSize);
+      setIsDeleteModal(false);
+      notifySuccess('Hủy thành công');
+    } finally {
+    }
+  };
 
   // ---- Render --------------------------------------------------------------
   return (
@@ -334,7 +365,8 @@ export default function Orders() {
         title="Hủy đặt phòng"
         description={`Bạn có chắc chắn muốn hủy đặt phòng tại ${selectedHouseLabel} không?`}
         open={isDeleteModal}
-        onConfirm={() => setIsDeleteModal(false)}
+        confirmText="Đồng ý"
+        onConfirm={() => handleCancel()}
         onClose={() => setIsDeleteModal(false)}
       />
     </Box>

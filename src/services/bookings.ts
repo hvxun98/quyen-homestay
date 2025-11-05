@@ -1,5 +1,5 @@
 // dùng axios fetcher của bạn
-import { fetcherPost, fetcher, fetcherPut } from 'utils/axios';
+import { fetcherPost, fetcher, fetcherPut, fetcherDelete } from 'utils/axios';
 
 export const createBooking = (payload: any) => {
   return fetcherPost('/api/bookings', payload);
@@ -7,6 +7,10 @@ export const createBooking = (payload: any) => {
 
 export const updateBooking = async (id: string, payload: any) => {
   return await fetcherPut(`/api/bookings/${id}`, payload);
+};
+
+export const cancelBooking = async (id: string) => {
+  return await fetcherDelete(`/api/bookings/${id}`);
 };
 
 export const getBookings = (params: {
