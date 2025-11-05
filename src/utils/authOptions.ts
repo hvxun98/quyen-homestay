@@ -25,16 +25,19 @@ export const authOptions: NextAuthOptions = {
 
         // Quan trọng: gọi route nội bộ để nhận cookie refresh_token (nếu API set)
         // Dùng đường dẫn tương đối vì authorize chạy trên server
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_API_URL ?? ''}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
-          // credentials: "include",  // bật nếu cần cookie giữa các domain/subdomain
-          body: JSON.stringify({
-            email: credentials.email,
-            password: credentials.password
-          })
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_API_URL ?? process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL ?? ''}/api/auth/login`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
+            // credentials: "include",  // bật nếu cần cookie giữa các domain/subdomain
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password
+            })
+          }
+        );
 
         // Nếu API trả lỗi
         if (!res.ok) {
