@@ -12,6 +12,9 @@ export default function AuthGuard({ children }: GuardProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  console.log('status', status);
+  console.log('data', session);
+
   useEffect(() => {
     if (status === 'loading') return;
 

@@ -10,7 +10,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
  */
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET_KEY,
+  secret: process.env.NEXTAUTH_SECRET_KEY || process.env.NEXT_APP_JWT_SECRET,
 
   providers: [
     CredentialsProvider({
@@ -25,19 +25,16 @@ export const authOptions: NextAuthOptions = {
 
         // Quan trọng: gọi route nội bộ để nhận cookie refresh_token (nếu API set)
         // Dùng đường dẫn tương đối vì authorize chạy trên server
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_API_URL ?? process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL ?? ''}/api/auth/login`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
-            // credentials: "include",  // bật nếu cần cookie giữa các domain/subdomain
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password
-            })
-          }
-        );
+        const res = await fetch(`${process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL ?? ''}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
+          // credentials: "include",  // bật nếu cần cookie giữa các domain/subdomain
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password
+          })
+        });
 
         // Nếu API trả lỗi
         if (!res.ok) {
@@ -102,7 +99,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   jwt: {
-    secret: process.env.NEXT_APP_JWT_SECRET
+    secret: process.env.NEXTAUTH_SECRET_KEY || process.env.NEXT_APP_JWT_SECRET
   },
 
   pages: {
