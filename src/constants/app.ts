@@ -30,3 +30,4 @@ export const source = [
     value: 'congTacVien'
   }
 ];
+export const PAYMENT_VALUES = ['full', 'deposit', 'unpaid'] as const;

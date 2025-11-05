@@ -4,6 +4,7 @@ import { dbConnect } from 'lib/mongodb';
 import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
+import { PAYMENT_VALUES } from 'constants/app';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,6 @@ type Basis = 'checkIn' | 'createdAt';
 const CHANNEL_VALUES = ['facebookAds', 'zalo', 'dayLaDau', 'airbnb', 'booking', 'senstay', 'congTacVien'] as const;
 type ChannelVal = (typeof CHANNEL_VALUES)[number];
 
-export const PAYMENT_VALUES = ['full', 'deposit', 'unpaid'] as const;
 type PaymentVal = (typeof PAYMENT_VALUES)[number];
 
 function emptyByChannel(): Record<ChannelVal, number> {
