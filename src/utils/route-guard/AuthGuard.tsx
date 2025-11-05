@@ -14,7 +14,9 @@ export default function AuthGuard({ children }: GuardProps) {
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') {
-      router.push(`/login?callbackUrl=${encodeURIComponent(pathname || '/')}`);
+      console.log('status', status);
+
+      // router.push(`/login?callbackUrl=${encodeURIComponent(pathname || '/')}`);
     }
   }, [status, router, pathname]);
 
