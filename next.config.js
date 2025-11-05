@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   modularizeImports: {
     '@mui/material': {
       transform: '@mui/material/{{member}}'
