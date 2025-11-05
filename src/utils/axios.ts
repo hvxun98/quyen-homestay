@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import Cookies from 'js-cookie';
 import Router from 'next/router';
 import { notifyError } from './notifier';
+import { getSession } from 'next-auth/react';
 
 function getBaseUrl() {
   if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
@@ -62,14 +62,10 @@ function isLogicalError(data: any) {
 
 axiosServices.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = Cookies.get('accessToken');
-    const slugCompany = Cookies.get('slugCompany');
+    const session = await getSession();
 
-    if (token) {
-      config.headers.set('Authorization', `Bearer ${token}`);
-    }
-    if (slugCompany) {
-      config.headers.set('X-Company-Slug', slugCompany);
+    if (session?.accessToken) {
+      config.headers['Authorization'] = `Bearer ${session.accessToken}`;
     }
 
     if (!config.headers['Content-Type'] && !(config.data instanceof FormData)) {
