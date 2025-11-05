@@ -3,8 +3,14 @@ import Cookies from 'js-cookie';
 import Router from 'next/router';
 import { notifyError } from './notifier';
 
+function getBaseUrl() {
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return '';
+}
+
 const axiosServices = axios.create({
-  baseURL: ''
+  baseURL: getBaseUrl()
 });
 
 function extractError(payload: any): { code: string; message: string } {
