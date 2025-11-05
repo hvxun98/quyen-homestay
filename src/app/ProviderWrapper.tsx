@@ -20,7 +20,7 @@ import { store } from 'store/store';
 
 // ==============================|| PROVIDER WRAPPER  ||============================== //
 
-export default function ProviderWrapper({ children }: { children: ReactElement }) {
+export default function ProviderWrapper({ children, session }: { children: ReactElement; session?: any }) {
   return (
     <Provider store={store}>
       <ConfigProvider>
@@ -28,7 +28,7 @@ export default function ProviderWrapper({ children }: { children: ReactElement }
           <RTLLayout>
             <Locales>
               <ScrollTop>
-                <SessionProvider refetchInterval={0}>
+                <SessionProvider session={session} refetchInterval={0}>
                   <Notistack>
                     <Snackbar />
                     {children}

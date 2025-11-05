@@ -12,10 +12,10 @@ export async function POST(req: Request) {
 
   const { email, password } = await req.json();
   const user = await User.findOne({ email });
-  if (!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Thông tin đăng nhập chưa đúng' }, { status: 401 });
 
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'Thông tin đăng nhập chưa đúng' }, { status: 401 });
 
   const accessToken = signAccess(String(user._id), user.role);
   const refreshToken = crypto.randomBytes(32).toString('hex');

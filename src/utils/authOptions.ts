@@ -8,6 +8,11 @@ import CredentialsProvider from 'next-auth/providers/credentials';
  * 200: { accessToken: string, ...optional user info }
  * 401/400: { error: "Invalid credentials" }
  */
+function getBaseUrl() {
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return '';
+}
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET_KEY || process.env.NEXT_APP_JWT_SECRET,
@@ -25,7 +30,7 @@ export const authOptions: NextAuthOptions = {
 
         // Quan trọng: gọi route nội bộ để nhận cookie refresh_token (nếu API set)
         // Dùng đường dẫn tương đối vì authorize chạy trên server
-        const res = await fetch(`${process.env.NEXTAUTH_URL ?? process.env.VERCEL_URL ?? ''}/api/auth/login`, {
+        const res = await fetch(`${getBaseUrl()}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           // Nếu login route của bạn set cookie HttpOnly, nên bật credentials:
