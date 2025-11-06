@@ -206,7 +206,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
             </Grid>
 
             {/* Tên & SĐT */}
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 name="customerName"
@@ -218,7 +218,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
                 helperText={helper('customerName')}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 name="customerPhone"
@@ -232,16 +232,17 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
             </Grid>
 
             {/* Checkin */}
-            <Grid item xs={3}>
+            <Grid item xs={6} md={3}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DesktopDatePicker
+                  sx={{ width: '100%' }}
                   label="Checkin"
                   value={formik.values.checkInDate as Dayjs}
                   onChange={(v) => formik.setFieldValue('checkInDate', v)}
                 />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={1.5}>
+            <Grid item xs={3} md={1.5}>
               <FormControl fullWidth error={err('checkInHour')}>
                 <InputLabel>Giờ</InputLabel>
                 <Select name="checkInHour" value={formik.values.checkInHour} onChange={formik.handleChange}>
@@ -253,7 +254,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={1.5}>
+            <Grid item xs={3} md={1.5}>
               <FormControl fullWidth error={err('checkInMinute')}>
                 <InputLabel>Phút</InputLabel>
                 <Select name="checkInMinute" value={formik.values.checkInMinute} onChange={formik.handleChange}>
@@ -267,7 +268,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
             </Grid>
 
             {/* Checkout */}
-            <Grid item xs={3}>
+            <Grid item xs={6} md={3}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DesktopDatePicker
                   label="Checkout"
@@ -276,7 +277,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
                 />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={1.5}>
+            <Grid item xs={3} md={1.5}>
               <FormControl fullWidth error={err('checkOutHour')}>
                 <InputLabel>Giờ</InputLabel>
                 <Select name="checkOutHour" value={formik.values.checkOutHour} onChange={formik.handleChange}>
@@ -288,7 +289,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={1.5}>
+            <Grid item xs={3} md={1.5}>
               <FormControl fullWidth error={err('checkOutMinute')}>
                 <InputLabel>Phút</InputLabel>
                 <Select name="checkOutMinute" value={formik.values.checkOutMinute} onChange={formik.handleChange}>
@@ -302,7 +303,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
             </Grid>
 
             {/* Giá & Nguồn */}
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 name="price"
@@ -320,7 +321,7 @@ const OrderAction: React.FC<Props> = ({ open, onClose, onCreated, defaultRoomId,
                 inputMode="numeric"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>Nguồn</InputLabel>
                 <Select name="source" value={formik.values.source} onChange={formik.handleChange}>

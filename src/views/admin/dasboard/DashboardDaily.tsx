@@ -83,37 +83,42 @@ export default function DashboardDailyMUI() {
   const occupancyRatePct = useMemo(() => (data ? Math.round((data.occupancy.rate || 0) * 100) : 0), [data]);
 
   return (
-    <Box p={3}>
+    <Box pt={3}>
       {/* Filters */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end" mb={3}>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DesktopDatePicker
-            label="Ngày"
-            value={date}
-            onChange={(v) => setDate(v)}
-            format="YYYY-MM-DD"
-            slotProps={{
-              textField: { size: 'small' } // TextField props của DatePicker
-            }}
-          />
-        </LocalizationProvider>
-
-        <TextField
-          label="Cách tính ngày"
-          size="small"
-          select
-          value={basis}
-          onChange={(e) => setBasis(e.target.value as Basis)}
-          sx={{ minWidth: 200 }}
-        >
-          <MenuItem value="checkIn">Theo ngày Check-in</MenuItem>
-          <MenuItem value="createdAt">Theo ngày tạo Booking</MenuItem>
-        </TextField>
-
-        <Button variant="contained" onClick={handleFetch} disabled={loading || !date}>
-          {loading ? 'Đang tải...' : 'Xem báo cáo'}
-        </Button>
-      </Stack>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md="auto">
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DesktopDatePicker
+              label="Ngày"
+              value={date}
+              onChange={(v) => setDate(v)}
+              format="YYYY-MM-DD"
+              slotProps={{
+                textField: { size: 'small' } // TextField props của DatePicker
+              }}
+            />
+          </LocalizationProvider>
+        </Grid>
+        <Grid item xs={12} md="auto">
+          <TextField
+            label="Cách tính ngày"
+            size="small"
+            select
+            value={basis}
+            onChange={(e) => setBasis(e.target.value as Basis)}
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="checkIn">Theo ngày Check-in</MenuItem>
+            <MenuItem value="createdAt">Theo ngày tạo Booking</MenuItem>
+          </TextField>
+        </Grid>
+        <Grid item xs={12} md="auto">
+          {' '}
+          <Button variant="contained" onClick={handleFetch} disabled={loading || !date}>
+            {loading ? 'Đang tải...' : 'Xem báo cáo'}
+          </Button>
+        </Grid>
+      </Grid>
 
       {err && (
         <Alert severity="error" sx={{ mb: 2 }}>
