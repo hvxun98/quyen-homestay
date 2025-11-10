@@ -109,7 +109,7 @@ export default function RoomTimelineFullCalendar() {
     );
   };
 
-  const resourceAreaWidth = isMobile ? 130 : 250;
+  const resourceAreaWidth = isMobile ? 130 : 450;
 
   return (
     <div style={{ height: '85vh', position: 'relative' }} className="time-line-wrapper">
@@ -121,21 +121,40 @@ export default function RoomTimelineFullCalendar() {
           center: 'title',
           right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
         }}
+        expandRows={false}
         views={{
           resourceTimelineWeek: {
             type: 'resourceTimeline',
             duration: { days: 7 },
-            slotDuration: { hours: isMobile ? 2 : 1 },
-            slotLabelInterval: { hours: isMobile ? 6 : 4 },
+            slotDuration: { hours: 1 }, // mỗi ô = 1 giờ
+            slotLabelInterval: { hours: 6 }, // hiển thị 00, 06, 12, 18 giờ
             slotLabelFormat: [
-              { weekday: 'short', day: '2-digit', month: isMobile ? undefined : '2-digit' },
+              // dòng 1: hiển thị thứ và ngày
+              { weekday: 'short', day: '2-digit', month: '2-digit' },
+              // dòng 2: hiển thị mốc giờ trong ngày
               { hour: '2-digit', minute: '2-digit', hour12: false }
-            ]
+            ],
+            slotMinWidth: 10 // tùy chọn: tăng/giảm độ rộng mỗi cột
           },
           resourceTimelineDay: {
-            slotDuration: { hours: isMobile ? 2 : 1 },
-            slotLabelInterval: { hours: isMobile ? 3 : 2 },
-            slotLabelFormat: [{ hour: '2-digit', minute: '2-digit', hour12: false }]
+            type: 'resourceTimeline',
+            slotDuration: { hours: 1 }, // mỗi ô = 1 giờ (độ rộng)
+            slotLabelInterval: { hours: 6 }, // hiển thị mốc “00 giờ, 06 giờ, 12 giờ, 18 giờ”
+            slotLabelFormat: [
+              { hour: '2-digit', minute: '2-digit', hour12: false } // định dạng HH:mm
+            ]
+          },
+          resourceTimelineMonth: {
+            type: 'resourceTimeline',
+            duration: { days: 30 }, // không cố định — dùng visibleRange để chính xác theo tháng
+            slotDuration: { hours: 6 }, // 4 cột/ngày
+            slotLabelInterval: { hours: 6 },
+            slotLabelFormat: [
+              { weekday: 'short', day: '2-digit', month: '2-digit' }, // dòng 1: Thứ + ngày
+              { hour: '2-digit', minute: '2-digit', hour12: false } // dòng 2: giờ
+            ],
+            // slotMinWidth sẽ được set động bên dưới (tùy thuộc ngày/chiều rộng)
+            slotMinWidth: 10
           }
         }}
         buttonText={{

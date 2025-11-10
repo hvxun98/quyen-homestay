@@ -4,12 +4,20 @@
 .fc-timeline-event,
 .fc-daygrid-event {
   border-radius: 10px;
-  background-color: #4680ff !important;
+  background-color: #3788d8 !important;
   border: none;
   color: white;
   padding: 5px;
   cursor: pointer;
 }
+
+.fc-timeline-slot-frame {
+  color: #0d6efd;
+}
+.fc-resource-group .fc-datagrid-cell-main {
+  font-weight: 600;
+}
+
 @media (max-width: 600px) {
   .fc-header-toolbar {
     flex-direction: column;
