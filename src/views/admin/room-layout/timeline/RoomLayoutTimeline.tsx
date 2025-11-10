@@ -13,7 +13,7 @@ import './style.css';
 import { getRoomOptions } from 'services/rooms';
 import { RoomGroup } from 'types/room';
 import BookingModal from './BookingModal';
-import { Backdrop, Button, CircularProgress } from '@mui/material';
+import { Backdrop, Button, CircularProgress, useMediaQuery } from '@mui/material';
 import { Add } from 'iconsax-react';
 
 type ResourceType = { id: string; title: string; houseCode: string };
@@ -26,6 +26,7 @@ export default function RoomTimelineFullCalendar() {
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [dateSelected, setDateSelected] = useState<any>();
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   useEffect(() => {
     (async () => {
@@ -109,6 +110,8 @@ export default function RoomTimelineFullCalendar() {
     );
   };
 
+  const resourceAreaWidth = isMobile ? 120 : 250;
+
   return (
     <div style={{ height: '85vh', position: 'relative' }}>
       <Button
@@ -134,16 +137,16 @@ export default function RoomTimelineFullCalendar() {
           resourceTimelineWeek: {
             type: 'resourceTimeline',
             duration: { days: 7 },
-            slotDuration: { hours: 1 },
-            slotLabelInterval: { hours: 6 },
+            slotDuration: { hours: isMobile ? 2 : 1 },
+            slotLabelInterval: { hours: isMobile ? 6 : 4 },
             slotLabelFormat: [
-              { weekday: 'short', day: '2-digit', month: '2-digit' },
+              { weekday: 'short', day: '2-digit', month: isMobile ? undefined : '2-digit' },
               { hour: '2-digit', minute: '2-digit', hour12: false }
             ]
           },
           resourceTimelineDay: {
-            slotDuration: { hours: 1 },
-            slotLabelInterval: { hours: 2 },
+            slotDuration: { hours: isMobile ? 2 : 1 },
+            slotLabelInterval: { hours: isMobile ? 3 : 2 },
             slotLabelFormat: [{ hour: '2-digit', minute: '2-digit', hour12: false }]
           }
         }}
@@ -166,7 +169,7 @@ export default function RoomTimelineFullCalendar() {
           minute: '2-digit',
           hour12: false
         }}
-        resourceAreaWidth={250}
+        resourceAreaWidth={resourceAreaWidth}
         nowIndicator
         eventOverlap={false}
         height="80vh"

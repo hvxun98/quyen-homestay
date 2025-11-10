@@ -1,5 +1,6 @@
 // Run this script with: npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register -r dotenv/config .\scripts\seed-user.ts
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import User from '../src/models/User';
@@ -8,7 +9,7 @@ import { dbConnect } from '../src/lib/mongodb';
 async function main() {
   await dbConnect();
 
-  const email = 'admin@gmail.com';
+  const email = 'admin1@gmail.com';
   const plainPassword = '123456aA@';
   const passwordHash = await bcrypt.hash(plainPassword, 12);
 

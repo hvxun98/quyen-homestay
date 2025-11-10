@@ -152,7 +152,7 @@ export default function CheckRoomForm() {
 
             {/* Checkin */}
             <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={2}>
+              <Grid item xs={3} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Giờ</InputLabel>
                   <Select name="checkinHour" value={formik.values.checkinHour} onChange={formik.handleChange}>
@@ -164,7 +164,7 @@ export default function CheckRoomForm() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={2}>
+              <Grid item xs={3} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Phút</InputLabel>
                   <Select name="checkinMinute" value={formik.values.checkinMinute} onChange={formik.handleChange}>
@@ -176,7 +176,7 @@ export default function CheckRoomForm() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={6} md={4}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DesktopDatePicker
                     label="Checkin"
@@ -189,7 +189,7 @@ export default function CheckRoomForm() {
 
             {/* Checkout */}
             <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={2}>
+              <Grid item xs={3} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Giờ</InputLabel>
                   <Select name="checkoutHour" value={formik.values.checkoutHour} onChange={formik.handleChange}>
@@ -202,7 +202,7 @@ export default function CheckRoomForm() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={2}>
+              <Grid item xs={3} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Phút</InputLabel>
                   <Select name="checkoutMinute" value={formik.values.checkoutMinute} onChange={formik.handleChange}>
@@ -215,7 +215,7 @@ export default function CheckRoomForm() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={4}>
+              <Grid item xs={6} md={4}>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DesktopDatePicker
                     label="Checkout"
