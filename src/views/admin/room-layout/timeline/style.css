@@ -7,7 +7,7 @@
   background-color: #4680ff !important;
   border: none;
   color: white;
-  padding: 10px;
+  padding: 5px;
   cursor: pointer;
 }
 @media (max-width: 600px) {
@@ -15,5 +15,13 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+  .time-line-wrapper {
+    zoom: 0.9;
+    margin: 0 -10px;
+  }
+
+  .fc-datagrid-header .fc-datagrid-cell-cushion {
+    padding: 0;
   }
 }

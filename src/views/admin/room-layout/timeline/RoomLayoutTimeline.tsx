@@ -14,7 +14,6 @@ import { getRoomOptions } from 'services/rooms';
 import { RoomGroup } from 'types/room';
 import BookingModal from './BookingModal';
 import { Backdrop, Button, CircularProgress, useMediaQuery } from '@mui/material';
-import { Add } from 'iconsax-react';
 
 type ResourceType = { id: string; title: string; houseCode: string };
 
@@ -110,26 +109,15 @@ export default function RoomTimelineFullCalendar() {
     );
   };
 
-  const resourceAreaWidth = isMobile ? 120 : 250;
+  const resourceAreaWidth = isMobile ? 130 : 250;
 
   return (
-    <div style={{ height: '85vh', position: 'relative' }}>
-      <Button
-        startIcon={<Add />}
-        variant="contained"
-        sx={{ my: 2 }}
-        onClick={() => {
-          setOpenDialog(true);
-          setSelectedBooking(null);
-        }}
-      >
-        Đặt phòng
-      </Button>
+    <div style={{ height: '85vh', position: 'relative' }} className="time-line-wrapper">
       <FullCalendar
         plugins={[resourceTimelinePlugin, interactionPlugin, timeGridPlugin, dayGridPlugin]}
         initialView="resourceTimelineDay"
         headerToolbar={{
-          left: 'prev,next today',
+          left: 'today prev,next',
           center: 'title',
           right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
         }}
@@ -157,6 +145,18 @@ export default function RoomTimelineFullCalendar() {
         }}
         resourceGroupField="houseCode"
         resources={resources}
+        resourceAreaHeaderContent={
+          <Button
+            variant="contained"
+            sx={{ my: 2 }}
+            onClick={() => {
+              setOpenDialog(true);
+              setSelectedBooking(null);
+            }}
+          >
+            Đặt phòng
+          </Button>
+        }
         events={events}
         locale={viLocale}
         editable={false}
