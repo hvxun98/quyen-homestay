@@ -119,13 +119,15 @@ export default function RoomTimelineFullCalendar() {
         headerToolbar={{
           left: 'today prev,next',
           center: 'title',
-          right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
+          right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
         }}
         expandRows={false}
         views={{
           resourceTimelineWeek: {
             type: 'resourceTimeline',
             duration: { days: 7 },
+            dateAlignment: 'week',
+            firstDay: 1,
             slotDuration: { hours: 1 }, // mỗi ô = 1 giờ
             slotLabelInterval: { hours: 6 }, // hiển thị 00, 06, 12, 18 giờ
             slotLabelFormat: [
@@ -134,7 +136,7 @@ export default function RoomTimelineFullCalendar() {
               // dòng 2: hiển thị mốc giờ trong ngày
               { hour: '2-digit', minute: '2-digit', hour12: false }
             ],
-            slotMinWidth: 10 // tùy chọn: tăng/giảm độ rộng mỗi cột
+            slotMinWidth: 10
           },
           resourceTimelineDay: {
             type: 'resourceTimeline',
@@ -146,7 +148,6 @@ export default function RoomTimelineFullCalendar() {
           },
           resourceTimelineMonth: {
             type: 'resourceTimeline',
-            duration: { days: 30 }, // không cố định — dùng visibleRange để chính xác theo tháng
             slotDuration: { hours: 6 }, // 4 cột/ngày
             slotLabelInterval: { hours: 6 },
             slotLabelFormat: [
@@ -154,13 +155,13 @@ export default function RoomTimelineFullCalendar() {
               { hour: '2-digit', minute: '2-digit', hour12: false } // dòng 2: giờ
             ],
             // slotMinWidth sẽ được set động bên dưới (tùy thuộc ngày/chiều rộng)
-            slotMinWidth: 10
+            slotMinWidth: 60
           }
         }}
         buttonText={{
           resourceTimelineDay: 'Ngày',
           resourceTimelineWeek: 'Tuần',
-          dayGridMonth: 'Tháng'
+          resourceTimeline: 'Tháng'
         }}
         resourceGroupField="houseCode"
         resources={resources}
