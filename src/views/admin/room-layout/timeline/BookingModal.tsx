@@ -252,12 +252,17 @@ function BookingModal({
 
           {/* Checkin */}
           <Grid container spacing={1}>
-            <Grid item xs={4}>
+            <Grid item xs={6}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DesktopDatePicker label="Checkin" value={values.checkInDate as Dayjs} onChange={(v) => setFieldValue('checkInDate', v)} />
+                <DesktopDatePicker
+                  sx={{ width: '100%' }}
+                  label="Checkin"
+                  value={values.checkInDate as Dayjs}
+                  onChange={(v) => setFieldValue('checkInDate', v)}
+                />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={3}>
               <FormControl fullWidth error={err('checkInHour')}>
                 <InputLabel>Giờ</InputLabel>
                 <Select name="checkInHour" value={values.checkInHour} onChange={handleChange}>
@@ -269,7 +274,7 @@ function BookingModal({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={3}>
               <FormControl fullWidth error={err('checkInMinute')}>
                 <InputLabel>Phút</InputLabel>
                 <Select name="checkInMinute" value={values.checkInMinute} onChange={handleChange}>
@@ -285,16 +290,17 @@ function BookingModal({
 
           {/* Checkout */}
           <Grid container spacing={1}>
-            <Grid item xs={4}>
+            <Grid item xs={6}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DesktopDatePicker
                   label="Checkout"
+                  sx={{ width: '100%' }}
                   value={values.checkOutDate as Dayjs}
                   onChange={(v) => setFieldValue('checkOutDate', v)}
                 />
               </LocalizationProvider>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={3}>
               <FormControl fullWidth error={err('checkOutHour')}>
                 <InputLabel>Giờ</InputLabel>
                 <Select name="checkOutHour" value={values.checkOutHour} onChange={handleChange}>
@@ -306,7 +312,7 @@ function BookingModal({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={3}>
               <FormControl fullWidth error={err('checkOutMinute')}>
                 <InputLabel>Phút</InputLabel>
                 <Select name="checkOutMinute" value={values.checkOutMinute} onChange={handleChange}>

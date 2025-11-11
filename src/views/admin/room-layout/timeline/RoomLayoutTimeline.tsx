@@ -14,7 +14,6 @@ import { getRoomOptions } from 'services/rooms';
 import { RoomGroup } from 'types/room';
 import BookingModal from './BookingModal';
 import { Backdrop, Button, CircularProgress, useMediaQuery } from '@mui/material';
-import { Add } from 'iconsax-react';
 
 type ResourceType = { id: string; title: string; houseCode: string };
 
@@ -110,53 +109,74 @@ export default function RoomTimelineFullCalendar() {
     );
   };
 
-  const resourceAreaWidth = isMobile ? 120 : 250;
+  const resourceAreaWidth = isMobile ? 130 : 450;
 
   return (
-    <div style={{ height: '85vh', position: 'relative' }}>
-      <Button
-        startIcon={<Add />}
-        variant="contained"
-        sx={{ my: 2 }}
-        onClick={() => {
-          setOpenDialog(true);
-          setSelectedBooking(null);
-        }}
-      >
-        Đặt phòng
-      </Button>
+    <div style={{ height: '85vh', position: 'relative' }} className="time-line-wrapper">
       <FullCalendar
         plugins={[resourceTimelinePlugin, interactionPlugin, timeGridPlugin, dayGridPlugin]}
         initialView="resourceTimelineDay"
         headerToolbar={{
-          left: 'prev,next today',
+          left: 'today prev,next',
           center: 'title',
-          right: 'resourceTimelineDay,resourceTimelineWeek,dayGridMonth'
+          right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
         }}
+        expandRows={false}
         views={{
           resourceTimelineWeek: {
             type: 'resourceTimeline',
             duration: { days: 7 },
-            slotDuration: { hours: isMobile ? 2 : 1 },
-            slotLabelInterval: { hours: isMobile ? 6 : 4 },
+            dateAlignment: 'week',
+            firstDay: 1,
+            slotDuration: { hours: 1 }, // mỗi ô = 1 giờ
+            slotLabelInterval: { hours: 6 }, // hiển thị 00, 06, 12, 18 giờ
             slotLabelFormat: [
-              { weekday: 'short', day: '2-digit', month: isMobile ? undefined : '2-digit' },
+              // dòng 1: hiển thị thứ và ngày
+              { weekday: 'short', day: '2-digit', month: '2-digit' },
+              // dòng 2: hiển thị mốc giờ trong ngày
               { hour: '2-digit', minute: '2-digit', hour12: false }
-            ]
+            ],
+            slotMinWidth: 10
           },
           resourceTimelineDay: {
-            slotDuration: { hours: isMobile ? 2 : 1 },
-            slotLabelInterval: { hours: isMobile ? 3 : 2 },
-            slotLabelFormat: [{ hour: '2-digit', minute: '2-digit', hour12: false }]
+            type: 'resourceTimeline',
+            slotDuration: { hours: 1 }, // mỗi ô = 1 giờ (độ rộng)
+            slotLabelInterval: { hours: 6 }, // hiển thị mốc “00 giờ, 06 giờ, 12 giờ, 18 giờ”
+            slotLabelFormat: [
+              { hour: '2-digit', minute: '2-digit', hour12: false } // định dạng HH:mm
+            ]
+          },
+          resourceTimelineMonth: {
+            type: 'resourceTimeline',
+            slotDuration: { hours: 6 }, // 4 cột/ngày
+            slotLabelInterval: { hours: 6 },
+            slotLabelFormat: [
+              { weekday: 'short', day: '2-digit', month: '2-digit' }, // dòng 1: Thứ + ngày
+              { hour: '2-digit', minute: '2-digit', hour12: false } // dòng 2: giờ
+            ],
+            // slotMinWidth sẽ được set động bên dưới (tùy thuộc ngày/chiều rộng)
+            slotMinWidth: 60
           }
         }}
         buttonText={{
           resourceTimelineDay: 'Ngày',
           resourceTimelineWeek: 'Tuần',
-          dayGridMonth: 'Tháng'
+          resourceTimeline: 'Tháng'
         }}
         resourceGroupField="houseCode"
         resources={resources}
+        resourceAreaHeaderContent={
+          <Button
+            variant="contained"
+            sx={{ my: 2 }}
+            onClick={() => {
+              setOpenDialog(true);
+              setSelectedBooking(null);
+            }}
+          >
+            Đặt phòng
+          </Button>
+        }
         events={events}
         locale={viLocale}
         editable={false}

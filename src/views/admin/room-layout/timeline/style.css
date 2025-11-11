@@ -4,16 +4,45 @@
 .fc-timeline-event,
 .fc-daygrid-event {
   border-radius: 10px;
-  background-color: #4680ff !important;
+  background-color: #3788d8 !important;
   border: none;
   color: white;
-  padding: 10px;
+  padding: 5px;
   cursor: pointer;
+  height: 30px;
 }
+
+.fc-timeline-slot-frame {
+  color: #0d6efd;
+}
+.fc-resource-group .fc-datagrid-cell-main {
+  font-weight: 600;
+}
+
+/* Hiệu ứng kẻ mờ giữa giờ, đậm giữa ngày */
+.fc-timeline-slots td {
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+.fc-timeline-slots td[data-date*='T00:00:00'] {
+  border-left: 2px solid rgba(0, 0, 0, 0.25);
+}
+.fc-timeline-header-row-chrono .fc-timeline-slot[data-date*='T00:00:00'] {
+  border-left: 2px solid rgba(0, 0, 0, 0.25);
+}
+
 @media (max-width: 600px) {
   .fc-header-toolbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+  .time-line-wrapper {
+    zoom: 0.9;
+    margin: 0 -10px;
+    padding-top: 30px;
+  }
+
+  .fc-datagrid-header .fc-datagrid-cell-cushion {
+    padding: 0;
   }
 }
