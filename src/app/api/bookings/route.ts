@@ -6,29 +6,12 @@ import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { nextSeq } from 'lib/counter';
 import { authOptions } from 'utils/authOptions';
+import { buildRangeFromTo, combineLocalToUtcDate } from 'utils/datetime';
 export const runtime = 'nodejs';
 
 // ---- Helpers ---------------------------------------------------------------
 type PayStatus = 'full' | 'deposit' | 'unpaid';
 type OrderStatus = 'pending' | 'success' | 'cancelled';
-
-function parseDateLocal(dateStr: string) {
-  // nhận "YYYY-MM-DD" hoặc "dd/mm/yyyy"
-  if (!dateStr) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return { y, m, d };
-  }
-  const [d, m, y] = dateStr.split(/[\/\-\.]/).map(Number);
-  return { y, m, d };
-}
-
-function combineLocal(dateStr: string, hour = 0, minute = 0) {
-  const p = parseDateLocal(String(dateStr));
-  if (!p) return new Date(NaN);
-  // new Date(y, m-1, d, h, m) -> lưu theo local time server
-  return new Date(p.y, p.m - 1, p.d, Number(hour) || 0, Number(minute) || 0, 0, 0);
-}
 
 // ---- GET /api/bookings -----------------------------------------------------
 /**
@@ -62,16 +45,10 @@ export async function GET(req: NextRequest) {
   if (status) filter.status = status;
 
   if (from || to) {
-    const range: any = {};
-    if (from) {
-      const p = parseDateLocal(from)!;
-      range.$gte = new Date(p.y, p.m - 1, p.d, 0, 0, 0, 0);
+    const range = buildRangeFromTo(from, to);
+    if (range.$gte || range.$lte) {
+      filter[dateField] = range;
     }
-    if (to) {
-      const p = parseDateLocal(to)!;
-      range.$lte = new Date(p.y, p.m - 1, p.d, 23, 59, 59, 999);
-    }
-    filter[dateField] = range;
   }
 
   const [items, total] = await Promise.all([
@@ -144,8 +121,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Room not found' }, { status: 400 });
   }
 
-  const checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
-  const checkOut = combineLocal(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
+  const checkIn = combineLocalToUtcDate(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
+  const checkOut = combineLocalToUtcDate(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
   if (!(checkOut > checkIn)) {
     return NextResponse.json({ error: 'Thời gian checkout phải sau checkin' }, { status: 400 });
   }
