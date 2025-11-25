@@ -5,29 +5,8 @@ import Booking from 'models/Booking';
 import Room from 'models/Room';
 import mongoose from 'mongoose';
 import dayjs from 'dayjs';
+import { combineLocalToUtcDate } from 'utils/datetime';
 export const runtime = 'nodejs';
-
-// ---- helpers (same parsing logic as POST) ---------------------------------
-function parseDateLocal(dateStr: string | undefined | null) {
-  if (!dateStr) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return { y, m, d };
-  }
-  const parts = String(dateStr)
-    .split(/[\/\-\.]/)
-    .map(Number);
-  if (parts.length < 3) return null;
-  const [d, m, y] = parts;
-  return { y, m, d };
-}
-
-function combineLocal(dateStr: string | undefined | null, hour = 0, minute = 0) {
-  const p = parseDateLocal(String(dateStr));
-  if (!p) return new Date(NaN);
-  return new Date(p.y, p.m - 1, p.d, Number(hour) || 0, Number(minute) || 0, 0, 0);
-}
-// ---------------------------------------------------------------------------
 
 type Status = 'pending' | 'success' | 'cancelled';
 
@@ -94,13 +73,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   // checkin/checkout
   if (body.checkInDate) {
-    set.checkIn = combineLocal(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
+    set.checkIn = combineLocalToUtcDate(body.checkInDate, body.checkInHour ?? 0, body.checkInMinute ?? 0);
   } else if (body.checkIn) {
     set.checkIn = new Date(body.checkIn);
   }
 
   if (body.checkOutDate) {
-    set.checkOut = combineLocal(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
+    set.checkOut = combineLocalToUtcDate(body.checkOutDate, body.checkOutHour ?? 0, body.checkOutMinute ?? 0);
   } else if (body.checkOut) {
     set.checkOut = new Date(body.checkOut);
   }

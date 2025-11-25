@@ -4,6 +4,9 @@ import { dbConnect } from 'lib/mongodb';
 import House from 'models/House';
 import Room from 'models/Room';
 import Booking from 'models/Booking';
+import { normalizeDateStr } from 'utils/datetime';
+import dayjs from 'dayjs';
+import { APP_TZ } from 'utils/dayjsTz';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
@@ -17,17 +20,30 @@ export async function GET(req: NextRequest) {
   const bookingFilter: any = {};
   if (status) bookingFilter.status = status;
   if (from || to) {
-    const range: any = {};
-    if (from) range.$lte = new Date(to + 'T23:59:59.999Z'); // kết thúc >= từ date
-    if (to) range.$gte = new Date(from + 'T00:00:00.000Z'); // bắt đầu <= tới date
+    // Chuẩn hoá ngày về YYYY-MM-DD
+    const fromYmd = from ? normalizeDateStr(from) : undefined;
+    const toYmd = to ? normalizeDateStr(to) : fromYmd; // nếu không có to, dùng from
 
-    bookingFilter.$or = [
-      { checkIn: range }, // checkIn nằm trong range
-      { checkOut: range }, // checkOut nằm trong range
-      { checkIn: { $lte: range.$lte }, checkOut: { $gte: range.$gte } } // bao phủ toàn bộ range
-    ];
+    if (!fromYmd && !toYmd) {
+      // không làm gì
+    } else {
+      const startYmd = fromYmd ?? toYmd!;
+      const endYmd = toYmd ?? fromYmd!;
+
+      // Tạo Date theo múi giờ VN, rồi convert ra UTC Date để query Mongo
+      const start = dayjs.tz(startYmd, 'YYYY-MM-DD', APP_TZ).startOf('day').toDate();
+      const end = dayjs.tz(endYmd, 'YYYY-MM-DD', APP_TZ).endOf('day').toDate();
+
+      bookingFilter.$or = [
+        // checkIn nằm trong [start, end]
+        { checkIn: { $gte: start, $lte: end } },
+        // checkOut nằm trong [start, end]
+        { checkOut: { $gte: start, $lte: end } },
+        // Booking bao trùm cả khoảng [start, end]
+        { checkIn: { $lte: start }, checkOut: { $gte: end } }
+      ];
+    }
   }
-
   // Lấy tất cả house
   const houses = await House.find().lean();
 

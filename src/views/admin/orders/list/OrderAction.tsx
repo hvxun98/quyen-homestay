@@ -1,4 +1,5 @@
 // src/components/OrderAction.tsx
+'use client';
 import React, { useMemo } from 'react';
 import {
   Dialog,

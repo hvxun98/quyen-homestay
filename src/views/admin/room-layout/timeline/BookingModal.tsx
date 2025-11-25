@@ -1,3 +1,4 @@
+'use client';
 import React, { useMemo } from 'react';
 import {
   Box,
@@ -23,12 +24,12 @@ import { Radio } from '@mui/material';
 import { DesktopDatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
-import { splitToForm } from 'utils/function';
 import { hours, minutes, source } from 'constants/app';
 import { onlyDigits, toVND, toYMD } from 'utils/format';
 import { createBooking, updateBooking } from 'services/bookings';
 import { RoomGroup } from 'types/room';
 import { notifySuccess } from 'utils/notify';
+import { splitToForm } from 'utils/function';
 
 type BookingModalProps = {
   selectedBooking?: any;
@@ -108,6 +109,7 @@ function BookingModal({
         onCreated();
         setOpenDialog(false);
         formik.resetForm();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         // notifyWarning('Cập nhật thất bại!');
       } finally {

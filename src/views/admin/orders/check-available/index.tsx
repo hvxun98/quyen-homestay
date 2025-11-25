@@ -11,6 +11,7 @@ import HouseItem from 'components/rooms/HouseItem';
 import { getHouses } from 'services/houses';
 import { checkAvailableRooms } from 'services/rooms';
 import Empty from 'components/Empty';
+import { APP_TZ } from 'utils/dayjsTz';
 
 type House = {
   _id: string;
@@ -35,12 +36,14 @@ type DataDisplay = {
 const hours = Array.from({ length: 24 }, (_, i) => i);
 const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-// Kết hợp ngày + giờ/phút thành ISO
 function combineToISO(date: Dayjs | null, hour: number, minute: number) {
   if (!date) return null;
-  const d = date.toDate();
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
+
+  const ymd = date.tz(APP_TZ).format('YYYY-MM-DD');
+  const hh = String(hour ?? 0).padStart(2, '0');
+  const mm = String(minute ?? 0).padStart(2, '0');
+
+  return dayjs.tz(`${ymd} ${hh}:${mm}`, 'YYYY-MM-DD HH:mm', APP_TZ).toISOString(); // UTC ISO
 }
 
 export default function CheckRoomForm() {

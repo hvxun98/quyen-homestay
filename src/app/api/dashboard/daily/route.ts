@@ -5,6 +5,8 @@ import Booking from 'models/Booking';
 import Room from 'models/Room';
 import { syncBookingAndRoomStatus } from 'services/bookingStatusUpdater';
 import { PAYMENT_VALUES } from 'constants/app';
+import dayjs from 'dayjs';
+import { APP_TZ } from 'utils/dayjsTz';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +30,13 @@ function emptyByChannel(): Record<ChannelVal, number> {
 }
 
 function getStartEndUTC(dateStr: string) {
-  const start = new Date(`${dateStr}T00:00:00.000Z`);
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end };
+  const startLocal = dayjs.tz(dateStr, 'YYYY-MM-DD', APP_TZ).startOf('day');
+  const endLocal = startLocal.add(1, 'day'); // [start, end)
+
+  return {
+    start: startLocal.toDate(), // Date UTC để query Mongo
+    end: endLocal.toDate()
+  };
 }
 
 export async function GET(req: NextRequest) {

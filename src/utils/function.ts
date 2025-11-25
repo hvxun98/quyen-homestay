@@ -1,4 +1,11 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const APP_TZ = 'Asia/Bangkok';
 
 export const objectToQueryString = (obj: any) => {
   const parts = [];
@@ -13,7 +20,7 @@ export const objectToQueryString = (obj: any) => {
   return parts.join('&');
 };
 
-export function splitToForm(dt: string | Date) {
-  const d = dayjs(dt);
+export function splitToForm(dt?: string | Date) {
+  const d = dt ? dayjs(dt).tz(APP_TZ) : dayjs().tz(APP_TZ);
   return { date: d, hour: d.hour(), minute: d.minute() };
 }
