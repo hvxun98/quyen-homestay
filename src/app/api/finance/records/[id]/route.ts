@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { dbConnect } from 'lib/mongodb';
 import FinanceRecord from 'models/FinanceRecord';
 import FinanceCategory from 'models/FinanceCategory';
+import { getServerSession } from 'next-auth';
+import { authOptions } from 'utils/authOptions';
+import { getUserIdByEmail } from 'lib/users';
 
 const updateSchema = z.object({
   amount: z.number().int().positive().optional(),
@@ -17,7 +20,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   await dbConnect();
   const rec = await FinanceRecord.findOne({ _id: params.id, deletedAt: null })
     .populate('createdBy', 'name email')
-    .populate('attachments', 'url mimeType')
+    // .populate('attachments', 'url mimeType')
     .populate('categoryId', 'name type');
   if (!rec) return NextResponse.json({ message: 'Không tìm thấy bản ghi' }, { status: 404 });
   return NextResponse.json(rec);
@@ -25,6 +28,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   await dbConnect();
+
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+  if (!userEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getUserIdByEmail(userEmail, session?.user?.name, true);
 
   const raw = await req.json().catch(() => ({}));
   const parsed = updateSchema.safeParse(raw);
@@ -48,7 +56,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       ...(data.month !== undefined ? { month: data.month } : {}),
       ...(data.categoryId !== undefined ? { categoryId: data.categoryId } : {}),
       ...(data.attachmentIds ? { attachments: data.attachmentIds } : {}),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      updatedBy: userId
     },
     { new: true }
   );

@@ -35,7 +35,7 @@ const invoices: NavItemType = {
       id: 'Quản lý thu nhập chi phí',
       title: <FormattedMessage id="Quản lý thu nhập chi phí" defaultMessage="Quản lý thu nhập chi phí" />,
       type: 'item',
-      url: '/admin/income-and-cost',
+      url: '/admin/finance',
       icon: MoneyRecive
     }
   ]

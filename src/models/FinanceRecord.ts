@@ -17,7 +17,7 @@ export interface IFinanceRecord {
   attachments: Types.ObjectId[]; // ref FileAsset
   source?: 'manual' | 'booking';
   sourceRefId?: Types.ObjectId | null;
-  createdBy: Types.ObjectId; // ref User
+  createdBy: String; // ref User
   updatedBy?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
@@ -39,7 +39,7 @@ const FinanceRecordSchema = new Schema<IFinanceRecord>(
     attachments: [{ type: Schema.Types.ObjectId, ref: 'FileAsset' }],
     source: { type: String, enum: ['manual', 'booking'], default: 'manual' },
     sourceRefId: { type: Schema.Types.ObjectId, default: null },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    createdBy: { type: String, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     deletedAt: { type: Date, default: null }
   },

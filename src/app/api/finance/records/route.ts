@@ -4,6 +4,9 @@ import { dbConnect } from 'lib/mongodb';
 import FinanceRecord from 'models/FinanceRecord';
 import FinanceCategory from 'models/FinanceCategory';
 import { nextSeq } from 'lib/counter';
+import { getServerSession } from 'next-auth';
+import { authOptions } from 'utils/authOptions';
+import { getUserIdByEmail } from 'lib/users';
 // import { authUser } from "@/lib/auth"; // tuỳ hệ thống của bạn
 
 const createSchema = z.object({
@@ -56,7 +59,7 @@ export async function GET(req: Request) {
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('createdBy', 'name email')
-      .populate('attachments', 'url')
+      // .populate('attachments', 'url')
       .populate('categoryId', 'name type'),
     FinanceRecord.countDocuments(filter)
   ]);
@@ -75,11 +78,16 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
 
-  // const user = await authUser(req); // lấy user đăng nhập
-  const userId = (data as any).createdBy || null; // fallback cho môi trường chưa tích hợp auth
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Lấy _id user từ email (tạo nếu chưa có)
+  const userId = await getUserIdByEmail(userEmail, session?.user?.name, true);
   if (!userId) {
-    // Tuỳ hệ thống của bạn: bạn có thể bỏ đoạn này nếu auth khác
-    // return NextResponse.json({ message: "Chưa xác thực người dùng" }, { status: 401 });
+    return NextResponse.json({ error: 'Không tìm thấy tài khoản người dùng' }, { status: 401 });
   }
 
   if (data.type === 'expense' && !data.categoryId) {
