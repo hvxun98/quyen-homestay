@@ -60,3 +60,10 @@ export function buildRangeFromTo(from?: string, to?: string) {
 export function toYMD(value: Dayjs | Date | string): string {
   return dayjsLib(value).tz(APP_TZ).format('YYYY-MM-DD');
 }
+
+export function buildMonthRange(year: number, month: number) {
+  const mm = String(month).padStart(2, '0');
+  const start = dayjsLib.tz(`${year}-${mm}-01`, 'YYYY-MM-DD', APP_TZ).startOf('month');
+  const nextStart = start.add(1, 'month').startOf('month');
+  return { $gte: start.toDate(), $lt: nextStart.toDate() }; // dùng $lt an toàn hơn $lte endOfMonth
+}

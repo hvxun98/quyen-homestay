@@ -63,6 +63,8 @@ export default function FinanceActionModal({ open, type, houses, initialHouseId,
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
 
+  console.log('initial', initial);
+
   const schema = Yup.object({
     houseId: Yup.string().required('Chọn nhà'),
     year: Yup.number().required(),
@@ -79,7 +81,7 @@ export default function FinanceActionModal({ open, type, houses, initialHouseId,
       month: initial?.month ?? dayjs().month() + 1,
       amount: initial?.amount ?? 0,
       note: initial?.note ?? '',
-      categoryId: (initial as any)?.categoryId ?? '' // only for expense
+      categoryId: (initial as any)?.categoryId?._id ?? '' // only for expense
     },
     enableReinitialize: true,
     validationSchema: schema,
@@ -134,7 +136,17 @@ export default function FinanceActionModal({ open, type, houses, initialHouseId,
   }, [open, type, formik.values.houseId, refreshKey]);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+    <Dialog
+      open={open}
+      // onClose={onClose}
+      fullWidth
+      maxWidth="xs"
+      disableEscapeKeyDown
+      onClose={(event, reason) => {
+        if (reason === 'backdropClick') return;
+        onClose();
+      }}
+    >
       <DialogTitle>{initial?._id ? 'Sửa bản ghi' : type === 'expense' ? 'Tạo chi phí' : 'Tạo thu nhập'}</DialogTitle>
       <form onSubmit={formik.handleSubmit}>
         <DialogContent dividers>

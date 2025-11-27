@@ -122,7 +122,6 @@ export default function FinanceView() {
   }, [houses, formik.values.houseId]);
 
   const columns: Column<FinanceRecord>[] = [
-    { label: '#', render: (_r, idx) => (pageNum - 1) * pageSize + idx + 1, width: 60 },
     { label: 'Mã', field: 'code', width: 120 },
     {
       label: 'Loại',

@@ -15,12 +15,12 @@ export interface IBooking {
   checkIn: Date;
   checkOut: Date;
   price: number;
-  status: BookingStatus;
-  paymentStatus: PaymentStatus;
-  source?: SOURCE;
+  status: BookingStatus; // 'pending' | 'success' | 'cancelled'
+  paymentStatus: PaymentStatus; // 'full' | 'deposit' | 'unpaid'
+  source?: string; // schema đang để string, ko enum
   note?: string;
-  createdBy?: Types.ObjectId;
-  updatedAt?: Date;
+  createdBy: string; // 👈 email, required theo schema
+  // createdAt/updatedAt được Mongoose thêm tự động do timestamps: true
 }
 
 export interface BookingModel extends Model<IBooking> {}
