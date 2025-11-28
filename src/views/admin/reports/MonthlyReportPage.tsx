@@ -67,6 +67,9 @@ export default function MonthlyReportPage() {
   const [loading, setLoading] = useState(false);
 
   const queryCommon = useMemo(() => ({ year, month, ...(houseId ? { houseId } : {}) }), [year, month, houseId]);
+  const displayRevenue = summary?.totals?.revenue || 0;
+  const displayExpense = summary?.totals?.expense || 0;
+  const displayProfit = useMemo(() => displayRevenue - displayExpense, [displayRevenue, displayExpense]);
 
   // ===== columns =====
   const roomColumns: Column<RoomRevenueRow>[] = [
@@ -162,9 +165,10 @@ export default function MonthlyReportPage() {
     // Sheet 1: Summary
     const s1 = [
       ['Chỉ tiêu', 'Giá trị'],
-      ['Doanh thu', summary?.totals?.revenue || 0],
-      ['Chi phí', summary?.totals?.expense || 0],
-      ['Lợi nhuận', summary?.totals?.profit || 0],
+      ['Doanh thu', displayRevenue || 0],
+      ['Chi phí', displayExpense || 0],
+      ['Lợi nhuận', displayProfit || 0],
+      ['Tiền thuê nhà', summary?.totals?.rentCost || 0],
       ['Tỷ suất lợi nhuận', percent(summary?.totals?.profitRate || 0)]
     ];
 
@@ -262,19 +266,29 @@ export default function MonthlyReportPage() {
       {/* 4 KPI (không "More info") */}
       <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid item xs={12} md={3}>
-          <CardKPI title="Doanh thu" value={summary?.totals?.revenue || 0} color="#1e88e5" />
+          <CardKPI title="Doanh thu" value={displayRevenue || 0} color="#1e88e5" />
         </Grid>
         <Grid item xs={12} md={3}>
-          <CardKPI title="Chi phí" value={summary?.totals?.expense || 0} color="#f2b01e" />
+          <CardKPI title="Chi phí" value={displayExpense || 0} color="#f2b01e" />
         </Grid>
         <Grid item xs={12} md={3}>
-          <CardKPI title="Lợi nhuận" value={summary?.totals?.profit || 0} color="#e53935" />
+          <CardKPI title="Lợi nhuận" value={displayProfit || 0} color="#e53935" />
         </Grid>
         <Grid item xs={12} md={3}>
-          <CardKPI title="Tỷ suất lợi nhuận" value={summary?.totals?.profitRate || 0} variant="percent" color="#2e7d32" />
+          <CardKPI
+            title="Tỷ suất lợi nhuận/ chi phí thuê nhà"
+            value={summary?.totals?.profitToRentRate || 0}
+            variant="percent"
+            color="#2e7d32"
+          />
         </Grid>
       </Grid>
 
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h4">
+          Tiền thuê nhà: <b>{money(summary?.totals?.rentCost || 0)}</b>
+        </Typography>
+      </Box>
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {/* Bảng trái: Doanh thu theo phòng (CommonTable + client paging) */}
         <Grid item xs={12} md={6}>

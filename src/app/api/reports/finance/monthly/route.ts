@@ -1,8 +1,10 @@
+// src/app/api/reports/finance/monthly/route.ts
 import { NextResponse } from 'next/server';
 import { dbConnect } from 'lib/mongodb';
 import { Types } from 'mongoose';
 import Booking from 'models/Booking';
 import FinanceRecord from 'models/FinanceRecord';
+import House from 'models/House';
 import 'models/Room';
 import 'models/House';
 import { buildMonthRange } from 'utils/datetime';
@@ -16,33 +18,24 @@ export async function GET(req: Request) {
 
   const range = buildMonthRange(year, month);
 
-  // Doanh thu (Booking.status = 'success', sum theo price)
-  const fastMatch: any = { checkOut: range, status: 'success' };
-  if (houseId) fastMatch.houseId = new Types.ObjectId(houseId);
+  // Doanh thu
+  const match: any = { checkOut: range, status: 'success' };
+  if (houseId) match.houseId = new Types.ObjectId(houseId);
+  const [{ s: revenue = 0 } = {}] = await Booking.aggregate([{ $match: match }, { $group: { _id: null, s: { $sum: '$price' } } }]);
 
-  let revenue = 0;
-  const fastAgg = await Booking.aggregate([{ $match: fastMatch }, { $group: { _id: null, s: { $sum: '$price' } } }]);
-  revenue = fastAgg?.[0]?.s || 0;
-
-  // Thu/Chi tháng
+  // Thu nhập / Chi phí
   const frBase: any = { year, month, deletedAt: null };
   if (houseId) frBase.houseId = new Types.ObjectId(houseId);
-
-  const [incAgg, expAgg, rentAgg] = await Promise.all([
+  const [incAgg, expAgg] = await Promise.all([
     FinanceRecord.aggregate([{ $match: { ...frBase, type: 'income' } }, { $group: { _id: null, s: { $sum: '$amount' } } }]),
-    FinanceRecord.aggregate([{ $match: { ...frBase, type: 'expense' } }, { $group: { _id: null, s: { $sum: '$amount' } } }]),
-    FinanceRecord.aggregate([
-      { $match: { ...frBase, type: 'expense' } },
-      { $lookup: { from: 'financecategories', localField: 'categoryId', foreignField: '_id', as: 'cat' } },
-      { $unwind: { path: '$cat', preserveNullAndEmptyArrays: true } },
-      { $match: { 'cat.code': 'rent' } },
-      { $group: { _id: null, s: { $sum: '$amount' } } }
-    ])
+    FinanceRecord.aggregate([{ $match: { ...frBase, type: 'expense' } }, { $group: { _id: null, s: { $sum: '$amount' } } }])
   ]);
-
   const otherIncome = incAgg?.[0]?.s || 0;
   const expense = expAgg?.[0]?.s || 0;
-  const rentCost = rentAgg?.[0]?.s || 0;
+
+  // ✅ Tiền thuê nhà luôn thống nhất kiểu số
+  const matchHouse = houseId ? { _id: new Types.ObjectId(houseId) } : {};
+  const [{ s: rentCost = 0 } = {}] = await House.aggregate([{ $match: matchHouse }, { $group: { _id: null, s: { $sum: '$price' } } }]);
 
   const profit = revenue + otherIncome - expense;
   const profitRate = revenue ? profit / revenue : 0;
