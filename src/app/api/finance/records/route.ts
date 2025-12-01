@@ -4,7 +4,14 @@ import { dbConnect } from 'lib/mongodb';
 import FinanceRecord from 'models/FinanceRecord';
 import FinanceCategory from 'models/FinanceCategory';
 import { nextSeq } from 'lib/counter';
-// import { authUser } from "@/lib/auth"; // tuỳ hệ thống của bạn
+import { getServerSession } from 'next-auth';
+import { authOptions } from 'utils/authOptions';
+import { getUserIdByEmail } from 'lib/users';
+import { Types } from 'mongoose';
+
+import 'models/User';
+import 'models/FinanceCategory';
+import 'models/FinanceRecord';
 
 const createSchema = z.object({
   type: z.enum(['income', 'expense']),
@@ -20,48 +27,51 @@ const createSchema = z.object({
   sourceRefId: z.string().optional()
 });
 
+const querySchema = z.object({
+  houseId: z.string().length(24).optional(), // ✅ optional
+  year: z.coerce.number().int().optional(), // cho phép thiếu -> lấy tất cả
+  month: z.coerce.number().int().min(1).max(12).optional(),
+  type: z.enum(['income', 'expense']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  q: z.string().trim().optional()
+});
+
 export async function GET(req: Request) {
   await dbConnect();
 
-  const { searchParams } = new URL(req.url);
-  const houseId = searchParams.get('houseId');
-  const year = searchParams.get('year');
-  const month = searchParams.get('month');
-  const type = searchParams.get('type'); // optional
-  const q = searchParams.get('q')?.trim();
-  const page = Number(searchParams.get('page') ?? '1');
-  const limit = Number(searchParams.get('limit') ?? '20');
+  const sp = Object.fromEntries(new URL(req.url).searchParams.entries());
+  const parsed = querySchema.safeParse(sp);
+  if (!parsed.success) {
+    return NextResponse.json({ message: 'Query không hợp lệ', errors: parsed.error.flatten() }, { status: 400 });
+  }
+  const { houseId, year, month, type, page, limit, q } = parsed.data;
 
-  if (!houseId) {
-    return NextResponse.json({ message: 'Thiếu houseId' }, { status: 400 });
-  }
-  if (!year || !month) {
-    return NextResponse.json({ message: 'Thiếu year hoặc month' }, { status: 400 });
+  // ✅ Xây filter: houseId CHỈ thêm khi có
+  const filter: any = { deletedAt: null };
+  if (houseId) filter.houseId = new Types.ObjectId(houseId);
+  if (typeof year === 'number') filter.year = year;
+  if (typeof month === 'number') filter.month = month;
+  if (type) filter.type = type;
+  if (q && q.length > 0) {
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    filter.$or = [{ code: rx }, { note: rx }];
   }
 
-  const filter: any = {
-    houseId,
-    year: Number(year),
-    month: Number(month),
-    deletedAt: null
-  };
-  if (type === 'income' || type === 'expense') filter.type = type;
-  if (q) {
-    filter.$or = [{ code: { $regex: q, $options: 'i' } }, { note: { $regex: q, $options: 'i' } }];
-  }
+  const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
     FinanceRecord.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+      .skip(skip)
       .limit(limit)
+      .populate('categoryId', 'name code')
       .populate('createdBy', 'name email')
-      .populate('attachments', 'url')
-      .populate('categoryId', 'name type'),
+      .lean(),
     FinanceRecord.countDocuments(filter)
   ]);
 
-  return NextResponse.json({ items, pagination: { page, limit, total } });
+  return NextResponse.json({ items, total, page, limit });
 }
 
 export async function POST(req: Request) {
@@ -75,11 +85,16 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
 
-  // const user = await authUser(req); // lấy user đăng nhập
-  const userId = (data as any).createdBy || null; // fallback cho môi trường chưa tích hợp auth
+  const session = await getServerSession(authOptions);
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Lấy _id user từ email (tạo nếu chưa có)
+  const userId = await getUserIdByEmail(userEmail, session?.user?.name, true);
   if (!userId) {
-    // Tuỳ hệ thống của bạn: bạn có thể bỏ đoạn này nếu auth khác
-    // return NextResponse.json({ message: "Chưa xác thực người dùng" }, { status: 401 });
+    return NextResponse.json({ error: 'Không tìm thấy tài khoản người dùng' }, { status: 401 });
   }
 
   if (data.type === 'expense' && !data.categoryId) {

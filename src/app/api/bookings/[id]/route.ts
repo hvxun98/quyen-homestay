@@ -6,6 +6,7 @@ import Room from 'models/Room';
 import mongoose from 'mongoose';
 import dayjs from 'dayjs';
 import { combineLocalToUtcDate } from 'utils/datetime';
+import { APP_TZ } from 'utils/dayjsTz';
 export const runtime = 'nodejs';
 
 type Status = 'pending' | 'success' | 'cancelled';
@@ -133,30 +134,32 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   return NextResponse.json(updated.toJSON ? updated.toJSON({ virtuals: true }) : updated);
 }
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   await dbConnect();
-  const id = params.id;
+  const { id } = params;
 
-  try {
-    const booking = await Booking.findByIdAndUpdate(id, { $set: { status: 'cancelled' } }, { new: true });
-
-    if (!booking) {
-      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-    }
-
-    // 2️⃣ Cập nhật room status nếu hiện đang 'booked'
-    if (booking.roomId) {
-      const roomDoc = await Room.findById(booking.roomId);
-      if (roomDoc && roomDoc.status === 'booked') {
-        roomDoc.status = 'available';
-        await roomDoc.save();
-      }
-    }
-
-    return NextResponse.json({ ok: true, bookingStatus: booking.status });
-  } catch (err) {
-    console.error('DELETE booking error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  const booking = await Booking.findById(id).lean();
+  if (!booking) {
+    return NextResponse.json({ message: 'Không tìm thấy đơn đặt phòng.' }, { status: 404 });
   }
+
+  // Lấy "bây giờ" theo APP_TZ, so sánh với checkIn (UTC)
+  const now = dayjs().tz(APP_TZ).toDate();
+  const checkIn = booking.checkIn instanceof Date ? booking.checkIn : new Date(booking.checkIn);
+
+  // Chỉ cho huỷ khi hiện tại < giờ checkIn
+  if (!(now < checkIn)) {
+    return NextResponse.json({ message: `Phòng đã được checkin. không thể huỷ` }, { status: 400 });
+  }
+
+  // Nếu đã huỷ rồi thì idempotent
+  if (booking.status === 'cancelled') {
+    return NextResponse.json({ message: 'Đơn đã được huỷ trước đó.' });
+  }
+
+  // Thực hiện huỷ (khuyến nghị: đổi trạng thái thay vì xoá cứng)
+  await Booking.updateOne({ _id: id }, { $set: { status: 'cancelled' } });
+
+  return NextResponse.json({ message: 'Huỷ đặt phòng thành công.', id });
 }
-// ...existing code...

@@ -16,10 +16,10 @@ const report: NavItemType = {
   type: 'group',
   children: [
     {
-      id: 'rp-month',
-      title: <FormattedMessage id="rp-month" defaultMessage="Báo cáo doanh thu theo tháng" />,
+      id: 'Báo cáo doanh thu theo tháng',
+      title: <FormattedMessage id="Báo cáo doanh thu theo tháng" defaultMessage="Báo cáo doanh thu theo tháng" />,
       type: 'item',
-      url: '/report-by-month',
+      url: '/admin/reports/monthly',
       icon: CalendarSearch
     }
   ]

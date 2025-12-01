@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import Router from 'next/router';
-import { notifyError } from './notifier';
+import { notifyError, notifyWarning } from './notifier';
 import { getSession } from 'next-auth/react';
 
 function getBaseUrl() {
@@ -85,7 +85,7 @@ axiosServices.interceptors.response.use(
     // Nếu API dùng "status: 0" cho lỗi logic
     if (isLogicalError(data)) {
       const { code, message } = extractError(data);
-      notifyError(code, message);
+      notifyWarning(code, message);
       return Promise.reject({ code, message, origin: data });
     }
 
@@ -112,7 +112,7 @@ axiosServices.interceptors.response.use(
     if ([502, 503, 504].includes(status)) {
       notifyError('SERVER_UNAVAILABLE', 'Hệ thống đang bảo trì hoặc mất kết nối');
     } else {
-      notifyError(code, message);
+      notifyWarning(code, message);
     }
 
     return Promise.reject(
