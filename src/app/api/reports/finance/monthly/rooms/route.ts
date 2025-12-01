@@ -15,7 +15,8 @@ export async function GET(req: Request) {
 
   const range = buildMonthRange(year, month);
 
-  const match: any = { checkOut: range, status: 'success' };
+  // 👇 Chuyển sang checkIn
+  const match: any = { checkIn: range, status: 'success' };
   if (houseId) match.houseId = new Types.ObjectId(houseId);
 
   const rows = await Booking.aggregate([
@@ -26,7 +27,18 @@ export async function GET(req: Request) {
     ...(houseId ? [{ $match: { 'room.houseId': new Types.ObjectId(houseId) } }] : []),
     { $lookup: { from: 'houses', localField: 'room.houseId', foreignField: '_id', as: 'house' } },
     { $unwind: '$house' },
-    { $project: { roomId: '$_id', roomName: '$room.name', bookings: 1, revenue: 1 } },
+    {
+      $project: {
+        roomId: '$_id',
+        roomName: '$room.name',
+        roomCode: '$room.code',
+        houseId: '$house._id',
+        houseCode: '$house.code',
+        houseAddress: '$house.address',
+        bookings: 1,
+        revenue: 1
+      }
+    },
     { $sort: { revenue: -1 } }
   ]);
 
