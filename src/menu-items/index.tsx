@@ -10,14 +10,14 @@ import report from './report';
 import orders from './orders';
 import invoices from './invoices';
 import roomsDiagram from './roomsDiagram';
-
+import users from './users';
 // types
 import { NavItemType } from 'types/menu';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems: { items: NavItemType[] } = {
-  items: [roomsDiagram, orders, invoices, report]
+  items: [roomsDiagram, orders, invoices, report, users]
 };
 
 export default menuItems;

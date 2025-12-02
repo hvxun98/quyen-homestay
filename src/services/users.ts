@@ -1,59 +1,85 @@
-import { PermissionAssignProps } from 'types/role';
-import { fetcher, fetcherDelete, fetcherPost, fetcherPut } from 'utils/axios';
-import { fetcherPost as fetcherPostPublic } from 'utils/axios';
+// src/services/users.ts
+import { fetcher, fetcherPost, fetcherPut, fetcherDelete } from 'utils/axios';
 
-export const postLogin = async (payload: { username: string; password: string; rememberMe: boolean }) => {
-  return await fetcherPostPublic('/api/authenticate', payload);
+export type Role = 'admin' | 'staff';
+
+export type UserRow = {
+  _id: string;
+  name?: string;
+  email: string;
+  role: Role;
+  houses?: { _id: string; code?: string; address?: string }[];
+  createdAt?: string;
 };
 
-export const getUsers = async (payload: any) => {
-  return await fetcherPost('/api/admin/users/filter', payload);
+export type ListUsersParams = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  role?: Role | '';
 };
 
-export const deleteUser = async (userId: any) => {
-  return await fetcherDelete(`/api/admin/users/${userId}`);
+export type CreateUserPayload = {
+  name?: string;
+  email: string;
+  password?: string;
+  role: Role;
+  houseIds?: string[]; // required when role === 'staff'
 };
 
-export const postBlockUser = async (userId: any) => {
-  return await fetcherPost(`/api/admin/users/${userId}/block`);
+export type UpdateUserPayload = Partial<{
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  houseIds: string[];
+}>;
+
+export type ListUsersResult = {
+  items: UserRow[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
-export const getBrands = async () => {
-  return await fetcher('/api/admin/brands');
+/** Build query string from params */
+function qs(obj: Record<string, any>) {
+  const p = new URLSearchParams();
+  Object.keys(obj).forEach((k) => {
+    const v = obj[k];
+    if (v === undefined || v === null || v === '') return;
+    p.append(k, String(v));
+  });
+  return p.toString();
+}
+
+/** List users (paginated) */
+export const listUsers = async (params: ListUsersParams = {}): Promise<ListUsersResult> => {
+  const q = qs({
+    page: params.page ?? 1,
+    limit: params.limit ?? 20,
+    q: params.q,
+    role: params.role
+  });
+  return await fetcher(`/api/users?${q}`);
 };
 
-export const getRolesByBrand = async (payload: any) => {
-  return await fetcher(`/api/admin/users/${payload?.userId}/roles/brands/${payload?.brandId}`);
+/** Get single user by id */
+export const getUser = async (id: string): Promise<UserRow> => {
+  return await fetcher(`/api/users/${id}`);
 };
 
-export const createUser = async (payload: any) => {
-  return await fetcherPost('/api/tenant/users', payload);
+/** Create new user */
+export const createUser = async (payload: CreateUserPayload): Promise<UserRow> => {
+  return await fetcherPost('/api/users', payload);
 };
 
-export const updateUser = async (payload: any) => {
-  return await fetcherPut('/api/tenant/users', payload);
+/** Update user */
+export const updateUser = async (id: string, payload: UpdateUserPayload): Promise<UserRow> => {
+  return await fetcherPut(`/api/users/${id}`, payload);
 };
 
-export const copyUser = async (payload: any) => {
-  return await fetcherPost(`/api/tenant/users/${payload?.id}/copy`, payload);
-};
-
-export const getUserDetail = async (login: string) => {
-  return await fetcher(`/api/admin/users/${login}`);
-};
-
-export const getRolesSystem = async () => {
-  return await fetcher(`/api/admin/roles/system`);
-};
-
-export const getPrivileges = async () => {
-  return await fetcher(`/api/admin/users/setting/privileges`);
-};
-
-export const postPermissionAssign = async (payload: PermissionAssignProps) => {
-  return await fetcherPost(`/api/admin/permissions/assign`, payload);
-};
-
-export const postCreateRole = async (payload: { name: string }) => {
-  return await fetcherPost(`/api/admin/roles`, payload);
+/** Delete user */
+export const deleteUser = async (id: string): Promise<{ message?: string; id?: string }> => {
+  return await fetcherDelete(`/api/users/${id}`);
 };
