@@ -111,7 +111,7 @@ export default function UsersPage() {
       render: (r) => (r.role === 'admin' ? <Chip size="small" label="Admin" color="primary" /> : <Chip size="small" label="Staff" />)
     },
     {
-      label: 'Nhà quản lý',
+      label: 'Cơ sở quản lý',
       width: 300,
       render: (r) => (r.houses?.length ? r.houses.map((h) => h.code || h.address || h._id).join(', ') : '-')
     },
@@ -130,9 +130,11 @@ export default function UsersPage() {
           >
             <Edit2 />
           </IconButton>
-          <IconButton size="small" onClick={() => handleDelete(r)}>
-            <Trash />
-          </IconButton>
+          {r.role !== 'admin' && (
+            <IconButton size="small" onClick={() => handleDelete(r)}>
+              <Trash />
+            </IconButton>
+          )}
         </Stack>
       )
     }
@@ -357,7 +359,7 @@ function UserModal({
 
           {role === 'staff' && (
             <FormControl size="small">
-              <InputLabel>Gán nhà</InputLabel>
+              <InputLabel>Cơ sở quản lý</InputLabel>
               <Select
                 multiple
                 value={selectedHouses}

@@ -21,9 +21,9 @@ export async function POST(req: Request) {
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  await Session.create({ userId: user._id, refreshTokenHash: refreshHash, expiresAt });
+  await Session.create({ userId: user._id, refreshTokenHash: refreshHash, expiresAt, role: user.role });
 
-  const res = NextResponse.json({ accessToken });
+  const res = NextResponse.json({ accessToken, role: user.role });
   res.cookies.set('refresh_token', refreshToken, {
     httpOnly: true,
     secure: true,

@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useState } from 'react';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -19,6 +19,7 @@ import { useGetMenu, useGetMenuMaster } from 'api/menu';
 
 // types
 import { NavItemType } from 'types/menu';
+import useUser from 'hooks/useUser';
 
 function isFound(arr: any, str: string) {
   return arr.items.some((element: any) => {
@@ -45,8 +46,16 @@ export default function Navigation() {
   const [selectedItems, setSelectedItems] = useState<string | undefined>('');
   const [selectedLevel, setSelectedLevel] = useState<number>(0);
   const [menuItems, setMenuItems] = useState<{ items: NavItemType[] }>({ items: [] });
+  const user = useUser();
 
   let dashboardMenu = MenuFromAPI();
+
+  useEffect(() => {
+    const role = user && user.role ? String(user.role) : '';
+    if (role !== 'admin') {
+      setMenuItems({ items: menuItem.items.filter((item) => item.id !== 'group-users') });
+    }
+  }, [user]);
 
   useLayoutEffect(() => {
     if (menuLoading && !isFound(menuItem, 'group-dashboard-loading')) {

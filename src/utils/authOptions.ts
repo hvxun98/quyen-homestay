@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
           name: data?.user?.name ?? undefined,
           accessToken: data.accessToken,
           // bạn có thể đưa thêm info khác nếu API trả về (role, avatar, ...)
-          role: data?.user?.role
+          role: data?.role
         } as any;
       }
     })

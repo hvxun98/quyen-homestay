@@ -29,7 +29,7 @@ export default function useUser() {
       email: user!.email!,
       avatar: user?.image!,
       thumb,
-      role: 'UI/UX Designer'
+      role: session?.role || 'user'
     };
 
     return newUser;
